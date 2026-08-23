@@ -1,0 +1,25 @@
+{
+  "name": "sinal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Clipping diário montado a partir dos principais veículos nacionais e internacionais, filtrável por tema e por fonte.",
+  "type": "module",
+  "scripts": {
+    "coletar": "node collector/collect.mjs",
+    "ia": "node collector/enrich.mjs",
+    "podar": "node collector/prune.mjs",
+    "edicao": "node collector/collect.mjs && node collector/enrich.mjs",
+    "servir": "node --run coletar && npx --yes serve site -l 5173",
+    "preview": "node collector/build-preview.mjs",
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}
