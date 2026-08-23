@@ -311,9 +311,17 @@ function classify(item, matchers, source) {
 
 // ---------------------------------------------------------------- ranking
 
+/**
+ * A "novidade" depende do ritmo do veículo. Um jornal diário envelhece em horas;
+ * a Harvard Business Review, não. Por isso a meia-vida é derivada da janela de
+ * cada fonte: 48h de janela dá meia-vida de 12h; 10 dias de janela dá 60h.
+ * Sem isso, tudo que não é notícia de agência afunda no fim da página.
+ */
 function scoreItem(item, source, now) {
+  const windowH = source.window || CONFIG.windowHours;
+  const halfLife = Math.max(6, windowH / 4);
   const ageHours = Math.max(0, (now - item.ts) / 3600000);
-  const recency = Math.pow(0.5, ageHours / 12);            // meia-vida de 12h
+  const recency = Math.pow(0.5, ageHours / halfLife);
   const src = source.weight ?? 0.7;
   const topic = Math.min(1, item.relevance / 9);
   const corroboration = Math.min(1, (item.clusterSize - 1) / 4);
@@ -343,7 +351,6 @@ async function main() {
   console.log(`→ ${sources.length} fontes, ${taxonomy.topics.length} temas, janela de ${CONFIG.windowHours}h`);
 
   const now = Date.now();
-  const cutoff = now - CONFIG.windowHours * 3600000;
 
   const health = [];
   const raw = [];
@@ -364,6 +371,10 @@ async function main() {
       console.log(`  ✗ ${source.id.padEnd(20)} XML inválido`);
       return;
     }
+
+    // cada fonte tem seu próprio relógio: diário fecha em 48h, revista e
+    // instituto de pesquisa precisam de dias para render alguma coisa
+    const cutoff = now - (source.window || CONFIG.windowHours) * 3600000;
 
     let kept = 0, stale = 0;
     for (const entry of entries) {
@@ -400,7 +411,12 @@ async function main() {
       // diagnóstico: quando uma fonte responde mas não rende nada, é preciso
       // saber se o feed veio vazio, veio velho, ou veio uma página que não é feed
       entriesFound: entries.length,
-      sample: kept === 0 ? stripHtml(res.body).slice(0, 180) : undefined,
+      // com zero entradas o problema é de formato: mostrar o XML cru, não o texto
+      sample: kept === 0
+        ? (entries.length === 0
+            ? res.body.replace(/\s+/g, ' ').slice(0, 200)
+            : `mais antiga que ${source.window || CONFIG.windowHours}h`)
+        : undefined,
     });
     console.log(`  ✓ ${source.id.padEnd(20)} ${String(kept).padStart(3)} itens${stale ? ` (${stale} fora da janela)` : ''}`);
   });
