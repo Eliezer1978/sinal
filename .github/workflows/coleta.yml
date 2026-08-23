@@ -96,7 +96,7 @@ jobs:
             }
             // Fonte que responde mas não rende matéria é o caso mais traiçoeiro:
             // parece saudável no painel e some da página sem explicação.
-            const empty = d.sources.filter(s => s.ok && s.count === 0);
+            const empty = d.sources.filter(s => s.ok && s.collected === 0);
             if (empty.length) {
               l.push('');
               l.push('<details open><summary><b>Responderam sem trazer nada (' + empty.length + ')</b></summary>');
