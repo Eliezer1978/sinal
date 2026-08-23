@@ -88,9 +88,26 @@ jobs:
             const down = d.sources.filter(s => !s.ok);
             if (down.length) {
               l.push('');
-              l.push('<details><summary>Fontes que falharam (' + down.length + ')</summary>');
+              l.push('<details open><summary><b>Fontes que falharam (' + down.length + ')</b></summary>');
               l.push('');
               down.forEach(s => l.push('- \`' + s.id + '\`: ' + s.error));
+              l.push('');
+              l.push('</details>');
+            }
+            // Fonte que responde mas não rende matéria é o caso mais traiçoeiro:
+            // parece saudável no painel e some da página sem explicação.
+            const empty = d.sources.filter(s => s.ok && s.count === 0);
+            if (empty.length) {
+              l.push('');
+              l.push('<details open><summary><b>Responderam sem trazer nada (' + empty.length + ')</b></summary>');
+              l.push('');
+              l.push('| fonte | itens no feed | fora da janela | o que veio |');
+              l.push('|---|---|---|---|');
+              empty.forEach(s => {
+                const g = s.diag || {};
+                const amostra = (g.sample || '').replace(/\|/g, '/').slice(0, 90);
+                l.push('| \`' + s.id + '\` | ' + (g.entries ?? '?') + ' | ' + (g.stale ?? '?') + ' | ' + amostra + ' |');
+              });
               l.push('');
               l.push('</details>');
             }
