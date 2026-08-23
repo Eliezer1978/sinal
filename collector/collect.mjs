@@ -23,7 +23,8 @@ const ROOT = join(__dirname, '..');
 const CONFIG = {
   windowHours: num(process.env.WINDOW_HOURS, 48),   // idade máxima de uma matéria
   perSourceCap: num(process.env.PER_SOURCE_CAP, 25),// teto de itens por fonte
-  globalCap: num(process.env.GLOBAL_CAP, 700),      // teto total
+  globalCap: num(process.env.GLOBAL_CAP, 900),      // teto total
+  minPerSource: num(process.env.MIN_PER_SOURCE, 3), // vagas garantidas por fonte
   concurrency: num(process.env.CONCURRENCY, 8),
   timeoutMs: num(process.env.TIMEOUT_MS, 20000),
   retries: num(process.env.RETRIES, 2),
@@ -202,11 +203,51 @@ function pickImage(entry) {
   return m ? m[1] : '';
 }
 
+/**
+ * Alguns veículos publicam Atom com prefixo de namespace na raiz
+ * (`<ns6:feed>` em vez de `<feed>`) — a HBR é um deles. Procurar a chave
+ * ignorando o prefixo evita perder o feed inteiro por causa disso.
+ */
+function pick(obj, ...names) {
+  if (!obj) return undefined;
+  for (const key of Object.keys(obj)) {
+    const bare = key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
+    if (names.includes(bare)) return obj[key];
+  }
+  return undefined;
+}
+
+/**
+ * Num feed com prefixo, os filhos também vêm prefixados (`ns6:title`).
+ * Em vez de reescrever cada leitor, acrescentamos apelidos sem prefixo,
+ * sem nunca sobrescrever uma chave que já exista.
+ */
+function aliasBareKeys(entry) {
+  if (!entry || typeof entry !== 'object') return entry;
+  for (const key of Object.keys(entry)) {
+    const i = key.indexOf(':');
+    if (i < 0 || key.startsWith('@_')) continue;
+    const bare = key.slice(i + 1);
+    if (!(bare in entry)) entry[bare] = entry[key];
+  }
+  return entry;
+}
+
 function extractEntries(doc) {
-  if (doc?.rss?.channel) return asArray(doc.rss.channel.item);
-  if (doc?.feed) return asArray(doc.feed.entry);
-  if (doc?.['rdf:RDF']) return asArray(doc['rdf:RDF'].item);
-  if (doc?.channel) return asArray(doc.channel.item);
+  const rss = pick(doc, 'rss');
+  if (rss) {
+    const channel = pick(rss, 'channel');
+    if (channel) return asArray(pick(channel, 'item'));
+  }
+  const feed = pick(doc, 'feed');
+  if (feed) return asArray(pick(feed, 'entry'));
+
+  const rdf = pick(doc, 'RDF');
+  if (rdf) return asArray(pick(rdf, 'item'));
+
+  const channel = pick(doc, 'channel');
+  if (channel) return asArray(pick(channel, 'item'));
+
   return [];
 }
 
@@ -377,7 +418,8 @@ async function main() {
     const cutoff = now - (source.window || CONFIG.windowHours) * 3600000;
 
     let kept = 0, stale = 0;
-    for (const entry of entries) {
+    for (const rawEntry of entries) {
+      const entry = aliasBareKeys(rawEntry);
       const link = pickLink(entry);
       let title = stripHtml(txt(entry.title));
       if (!link || !title) continue;
@@ -481,16 +523,29 @@ async function main() {
   }
   final.sort((a, b) => b.score - a.score);
 
-  // teto por fonte, para nenhum feed dominar a página
+  // Teto por fonte, para nenhum feed dominar a página. Mas antes disso, cada
+  // fonte tem vaga garantida: sem isso, veículos de ritmo lento — que é onde
+  // está a análise — nunca sobrevivem ao corte global, porque perdem no
+  // quesito recência para o noticiário de agência.
+  const reserva = new Map();
+  const garantidas = new Set();
+  for (const it of final) {
+    const n = reserva.get(it.sourceId) || 0;
+    if (n >= CONFIG.minPerSource) continue;
+    reserva.set(it.sourceId, n + 1);
+    garantidas.add(it);
+  }
+
   const perSource = new Map();
   const capped = [];
   for (const it of final) {
+    if (capped.length >= CONFIG.globalCap && !garantidas.has(it)) continue;
     const n = perSource.get(it.sourceId) || 0;
     if (n >= CONFIG.perSourceCap) continue;
     perSource.set(it.sourceId, n + 1);
     capped.push(it);
-    if (capped.length >= CONFIG.globalCap) break;
   }
+  capped.sort((a, b) => b.score - a.score);
 
   console.log(`→ ${capped.length} itens publicados`);
 
@@ -521,9 +576,12 @@ async function main() {
         lang: s.lang, site: s.site, paywall: !!s.paywall,
         ok: h?.ok ?? false, error: h?.error ?? null,
         count: capped.filter((i) => i.sourceId === s.id).length,
+        // só é "vazia" quando o feed não rendeu nada; se rendeu e não aparece,
+        // foi o teto global que cortou, e isso não é defeito
         diag: h?.ok && h.items === 0
           ? { entries: h.entriesFound, stale: h.skippedStale, sample: h.sample }
           : undefined,
+        collected: h?.items ?? 0,
       };
     }),
     items: capped.map((it, idx) => ({

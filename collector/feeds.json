@@ -324,7 +324,7 @@
       "hint": [
         "brasil-politica"
       ],
-      "window": 120
+      "window": 240
     },
     {
       "id": "dw-br",
@@ -700,7 +700,7 @@
         "futuro-trabalho",
         "performance-humana"
       ],
-      "window": 240
+      "window": 720
     },
     {
       "id": "clo",
@@ -718,24 +718,6 @@
         "performance-humana"
       ],
       "window": 240
-    },
-    {
-      "id": "hrbrew",
-      "name": "HR Brew",
-      "group": "gestao",
-      "type": "gnews",
-      "section": "Geral",
-      "lang": "en",
-      "weight": 0.7,
-      "paywall": false,
-      "site": "https://www.hr-brew.com",
-      "hint": [
-        "futuro-trabalho",
-        "dei-equidade"
-      ],
-      "window": 240,
-      "query": "site:hr-brew.com",
-      "gl": "US"
     },
     {
       "id": "hrdive",
@@ -1088,7 +1070,7 @@
         "cultura-comportamento",
         "performance-humana"
       ],
-      "window": 240
+      "window": 480
     },
     {
       "id": "noema",
@@ -1105,7 +1087,7 @@
         "cultura-comportamento",
         "ia-tecnologia"
       ],
-      "window": 240
+      "window": 480
     },
     {
       "id": "g1",
@@ -1324,7 +1306,7 @@
         "brasil-politica",
         "cultura-comportamento"
       ],
-      "window": 240
+      "window": 480
     }
   ]
 }
