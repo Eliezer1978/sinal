@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sinal — clipping diário</title>
+<meta name="description" content="Clipping diário montado a partir dos principais veículos nacionais e internacionais, filtrável por tema e por fonte.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%231d5c47'/><path d='M6 20h3l3-9 4 14 3-11 2 6h5' fill='none' stroke='%23f4faf7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+
+<a class="skip-link" href="#results">Pular para as notícias</a>
+
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <div class="brand">
+      <h1>Sinal</h1>
+      <p class="tagline"><span id="edition-date">carregando…</span></p>
+    </div>
+    <div class="masthead-actions">
+      <button id="btn-ai" class="btn btn-accent" aria-expanded="false" hidden>Curadoria&nbsp;IA</button>
+      <div class="seg" role="group" aria-label="Idioma das matérias">
+        <button class="seg-btn is-on" data-lang="pt">Português</button>
+        <button class="seg-btn" data-lang="orig">Original</button>
+      </div>
+      <button id="btn-theme" class="btn btn-icon" title="Alternar tema claro e escuro" aria-label="Alternar tema">◐</button>
+      <button id="btn-filters" class="btn btn-filters" aria-expanded="false">Filtros <span id="filter-count" class="pill"></span></button>
+    </div>
+  </div>
+  <div class="wrap statline" id="statline"></div>
+</header>
+
+<div class="wrap layout">
+
+  <aside id="sidebar" class="sidebar" aria-label="Filtros">
+    <div class="sidebar-scroll">
+
+      <div class="field">
+        <label class="field-label" for="q">Buscar</label>
+        <input id="q" type="search" placeholder="palavra, empresa, país…" autocomplete="off" spellcheck="false">
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Temas</h2>
+          <button class="linkish" id="topics-clear">todos</button>
+        </div>
+        <p class="panel-hint">Nada marcado mostra tudo. Marque para estreitar.</p>
+        <div id="topic-chips" class="chips"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Fontes</h2>
+          <div class="panel-actions">
+            <button class="linkish" id="src-all">todas</button>
+            <button class="linkish" id="src-none">nenhuma</button>
+          </div>
+        </div>
+        <div id="source-groups" class="source-groups"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Exibição</h2></div>
+        <div class="field">
+          <label class="field-label" for="sort">Ordenar por</label>
+          <select id="sort">
+            <option value="score">Relevância para meus temas</option>
+            <option value="time">Mais recentes primeiro</option>
+            <option value="coverage">Maior cobertura</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="window">Período</label>
+          <select id="window">
+            <option value="24">Últimas 24 horas</option>
+            <option value="48" selected>Últimas 48 horas</option>
+            <option value="0">Tudo que foi coletado</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="hide-paywall"> <span>Ocultar matérias com paywall</span></label>
+        <label class="check"><input type="checkbox" id="compact"> <span>Modo compacto</span></label>
+      </section>
+
+      <button id="reset" class="btn btn-ghost btn-block">Restaurar padrão</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <section id="briefing" class="briefing" hidden aria-live="polite"></section>
+
+    <div id="chipbar" class="chipbar" hidden></div>
+
+    <div id="results" class="results" tabindex="-1"></div>
+
+    <div id="empty" class="empty" hidden>
+      <p class="empty-title">Nenhuma matéria com esses filtros.</p>
+      <p>Tente ampliar o período, limpar a busca ou desmarcar alguns temas.</p>
+      <button class="btn btn-ghost" id="empty-reset">Restaurar padrão</button>
+    </div>
+
+    <button id="more" class="btn btn-ghost btn-block" hidden>Carregar mais</button>
+
+    <footer class="foot">
+      <details id="health">
+        <summary>Situação das fontes</summary>
+        <div id="health-body"></div>
+      </details>
+      <p class="foot-note" id="foot-note"></p>
+    </footer>
+  </main>
+
+</div>
+
+<div id="scrim" class="scrim" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
