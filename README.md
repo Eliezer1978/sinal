@@ -9,9 +9,14 @@ página onde você escolhe, na hora, quais temas e quais fontes quer ver.
 O site é estático. Não há servidor, não há banco de dados, não há chave de API
 no navegador. É um arquivo JSON e três arquivos de front-end.
 
+**No ar em:** <https://eliezer1978.github.io/sinal/>
+
 ---
 
 ## Publicar pela primeira vez
+
+*(Já feito. Fica registrado para o caso de você precisar recriar tudo do zero,
+ou montar uma segunda edição com outro recorte de fontes.)*
 
 São seis passos. Leva por volta de quinze minutos, e depois disso nunca mais.
 
@@ -77,6 +82,25 @@ localize a fonte pelo `id` e conserte a URL — ou troque o tipo para `gnews`
 (explicado adiante), que quase sempre funciona. Uma fonte quebrada nunca derruba
 a coleta: ela aparece marcada em "Situação das fontes", no rodapé do site.
 
+**Uma fonte responde mas não traz nada.** É o caso mais traiçoeiro: parece
+saudável no painel e some da página sem explicação. O resumo de cada execução em
+Actions traz uma tabela "Responderam sem trazer nada" com três colunas que
+identificam a causa:
+
+- *itens no feed = 0* e um trecho de XML na última coluna: o feed mudou de
+  formato ou a busca no Google Notícias não achou nada. Foi assim que
+  descobrimos que a HBR publica Atom com prefixo de namespace (`<ns6:feed>`) e
+  que o WSJ abandonou seus feeds, que ainda respondem com conteúdo de 2025.
+- *itens no feed > 0* e todos fora da janela: a fonte publica mais devagar do
+  que a janela dela permite. Aumente o `window` dessa fonte.
+
+**Fontes que já foram trocadas por esse motivo.** A AFP não tem feed público nem
+aparece indexada por domínio próprio no Google Notícias; no lugar dela entrou a
+**France 24**, principal redação de língua inglesa que publica o fio da AFP. A
+**HR Brew** saiu: não tem feed próprio nem indexação, e a HR Dive cobre o mesmo
+terreno. **WSJ, Quartz, Fórum Econômico Mundial** passaram a ser buscados via
+Google Notícias porque seus feeds diretos estão mortos ou bloqueiam robôs.
+
 **O site diz "Ainda não há edição publicada".** Falta rodar o passo 5.
 
 **A página não atualiza no horário.** O GitHub agenda em UTC e não segue horário
@@ -114,6 +138,27 @@ Tudo mora em `collector/feeds.json`. Cada fonte é um objeto:
   classificação, mas nunca inventa tema do nada: só reforça o que o texto já
   sugeriu, ou serve de último recurso quando o texto não sugeriu nada.
 - **`section`** é só rótulo, aparece ao lado do nome do veículo.
+- **`window`** é a janela de tempo daquela fonte, em horas. Ausente, valem 48h.
+  É o campo mais importante depois do `weight`, e o motivo está abaixo.
+
+### Por que cada fonte tem seu próprio relógio
+
+Uma agência de notícias envelhece em horas. A Harvard Business Review, não; a
+piauí é mensal; o Josh Bersin publica poucas vezes por mês. Com uma janela única
+de 48 horas, **todas as fontes de análise desapareciam da página** — não por
+erro, mas porque nada que elas publicaram estava dentro do prazo. Foi exatamente
+o que aconteceu na primeira coleta real: 25 fontes responderam e não entregaram
+nada, entre elas HBR, MIT Sloan, McKinsey, MIT Technology Review e Foreign
+Affairs.
+
+Hoje a janela é escalonada: 48h para diários e agências, 120h para diários
+estrangeiros e seções que rendem pouco no fim de semana, 240h para revistas,
+consultorias e institutos, 480h para mensais e 720h para o Bersin.
+
+A meia-vida do ranking acompanha: é sempre um quarto da janela da fonte. Uma
+matéria de agência perde metade do valor em 12 horas; um artigo da HBR, em 60.
+Sem isso, o conteúdo de ritmo lento entraria na coleta e afundaria no fim da
+página, o que dá no mesmo que não entrar.
 
 ### Quando o veículo não tem RSS
 
@@ -164,13 +209,19 @@ componentes com pesos fixos (definidos em `WEIGHTS`, no topo de
 
 | Componente | Peso | O que mede |
 |---|---|---|
-| Recência | 0,34 | Meia-vida de 12 horas: uma matéria de 12h vale metade de uma de agora |
+| Recência | 0,34 | Meia-vida igual a um quarto da janela da fonte |
 | Peso da fonte | 0,26 | O `weight` que você definiu no registro |
 | Relevância temática | 0,28 | Quanto o texto casou com os seus temas |
 | Corroboração | 0,12 | Quantos veículos cobriram o mesmo fato |
 
-Depois disso, um teto de 25 matérias por fonte impede que um feed prolífico
-domine a página, e um teto global de 700 mantém o JSON leve.
+Depois disso vêm três limites, nesta ordem:
+
+1. **Vaga garantida:** cada fonte entra com pelo menos 3 matérias, antes de
+   qualquer corte. Sem essa reserva, veículo de ritmo lento nunca sobrevive ao
+   teto global — perde no quesito recência para o noticiário de agência e some
+   da página mesmo tendo publicado.
+2. **Teto por fonte:** 25 matérias, para nenhum feed prolífico dominar.
+3. **Teto global:** 900 matérias, para o JSON continuar leve.
 
 ### Agrupamento
 
@@ -239,9 +290,10 @@ Variáveis de ambiente úteis:
 
 | Variável | Padrão | Efeito |
 |---|---|---|
-| `WINDOW_HOURS` | 48 | Idade máxima de uma matéria |
+| `WINDOW_HOURS` | 48 | Janela padrão, para fontes sem `window` próprio |
 | `PER_SOURCE_CAP` | 25 | Teto de matérias por fonte |
-| `GLOBAL_CAP` | 700 | Teto total |
+| `MIN_PER_SOURCE` | 3 | Vagas garantidas por fonte antes do teto global |
+| `GLOBAL_CAP` | 900 | Teto total |
 | `CONCURRENCY` | 8 | Feeds buscados em paralelo |
 | `MAX_TRANSLATE` | 400 | Teto de matérias traduzidas |
 | `KEEP_DAYS` | 30 | Dias de arquivo mantidos |
