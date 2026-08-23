@@ -377,9 +377,14 @@ async function main() {
       if (ts < cutoff) { stale++; continue; }
       if (ts > now + 6 * 3600000) continue; // data futura absurda
 
+      // O Google Notícias não devolve resumo: a descrição é uma lista de links
+      // que, depois de limpa, vira o próprio título repetido. Melhor vazio.
+      let summary = source.type === 'gnews' ? '' : pickSummary(entry);
+      if (summary && fold(summary).startsWith(fold(title).slice(0, 32))) summary = '';
+
       raw.push({
         title,
-        summary: truncate(pickSummary(entry), CONFIG.summaryChars),
+        summary: truncate(summary, CONFIG.summaryChars),
         url: cleanUrl(link),
         canonical: canonicalUrl(link),
         image: pickImage(entry),
@@ -392,6 +397,10 @@ async function main() {
     health.push({
       id: source.id, name: source.name, section: source.section || '',
       ok: true, items: kept, skippedStale: stale, error: null,
+      // diagnóstico: quando uma fonte responde mas não rende nada, é preciso
+      // saber se o feed veio vazio, veio velho, ou veio uma página que não é feed
+      entriesFound: entries.length,
+      sample: kept === 0 ? stripHtml(res.body).slice(0, 180) : undefined,
     });
     console.log(`  ✓ ${source.id.padEnd(20)} ${String(kept).padStart(3)} itens${stale ? ` (${stale} fora da janela)` : ''}`);
   });
@@ -496,6 +505,9 @@ async function main() {
         lang: s.lang, site: s.site, paywall: !!s.paywall,
         ok: h?.ok ?? false, error: h?.error ?? null,
         count: capped.filter((i) => i.sourceId === s.id).length,
+        diag: h?.ok && h.items === 0
+          ? { entries: h.entriesFound, stale: h.skippedStale, sample: h.sample }
+          : undefined,
       };
     }),
     items: capped.map((it, idx) => ({
