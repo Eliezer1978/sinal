@@ -1,0 +1,276 @@
+{
+  "_comment": "Taxonomia de temas. 'strong' são termos que sozinhos já indicam o tema (peso 3). 'weak' são termos de apoio, que só contam quando somados (peso 1). A comparação ignora acentos e maiúsculas. Termos com espaço são casados como expressão; termos de uma palavra respeitam limite de palavra. Edite à vontade: é aqui que se afina a pontaria do site.",
+
+  "topics": [
+    {
+      "id": "futuro-trabalho",
+      "label": "Futuro do trabalho e RH",
+      "short": "Trabalho",
+      "description": "Modelos de trabalho, mercado de trabalho, automação de funções e gestão de pessoas.",
+      "strong": [
+        "future of work", "futuro do trabalho", "hybrid work", "trabalho hibrido", "remote work", "trabalho remoto",
+        "return to office", "volta ao escritorio", "four-day week", "semana de quatro dias", "jornada de trabalho",
+        "workforce", "forca de trabalho", "human resources", "recursos humanos", "talent acquisition",
+        "labor market", "mercado de trabalho", "employee experience", "gig economy", "freelance economy",
+        "job cuts", "demissoes", "layoffs", "hiring freeze", "reducao de quadro", "attrition", "turnover",
+        "quiet quitting", "burnout no trabalho", "employee engagement", "engajamento dos funcionarios",
+        "reskilling", "upskilling", "requalificacao", "skills gap", "lacuna de competencias",
+        "clt", "reforma trabalhista", "sindicato", "union drive", "collective bargaining"
+      ],
+      "weak": [
+        "employer", "employee", "workplace", "local de trabalho", "empregador", "funcionarios", "colaboradores",
+        "recruiting", "recrutamento", "contratacao", "salario", "wages", "salaries", "benefits", "beneficios",
+        "produtividade", "productivity", "carreira", "career", "emprego", "jobs report", "unemployment", "desemprego",
+        "cargo", "vagas", "headcount", "rh", "hr", "people analytics"
+      ]
+    },
+    {
+      "id": "lideranca-gestao",
+      "label": "Liderança e gestão",
+      "short": "Liderança",
+      "description": "Desenvolvimento de líderes, cultura organizacional e prática de gestão.",
+      "strong": [
+        "leadership", "lideranca", "leadership development", "desenvolvimento de lideres", "leader",
+        "management practice", "pratica de gestao", "organizational culture", "cultura organizacional",
+        "corporate culture", "cultura corporativa", "chief executive", "ceo", "c-suite", "alta lideranca",
+        "board of directors", "conselho de administracao", "governanca corporativa", "corporate governance",
+        "succession planning", "plano de sucessao", "executive coaching", "mentoria executiva",
+        "psychological safety", "seguranca psicologica", "change management", "gestao da mudanca",
+        "decision making", "tomada de decisao", "team performance", "middle managers", "gestores intermediarios"
+      ],
+      "weak": [
+        "manager", "gestor", "executive", "executivo", "diretor", "presidente da empresa", "chairman",
+        "estrategia", "strategy", "org chart", "reestruturacao", "restructuring", "management", "gestao",
+        "equipe", "team", "cultura", "culture", "conselho", "liderar"
+      ]
+    },
+    {
+      "id": "educacao-aprendizagem",
+      "label": "Educação e aprendizagem",
+      "short": "Educação",
+      "description": "Educação corporativa, políticas educacionais, ciência da aprendizagem e edtech.",
+      "strong": [
+        "corporate learning", "educacao corporativa", "learning and development", "treinamento corporativo",
+        "chief learning officer", "learning culture", "cultura de aprendizagem", "lifelong learning",
+        "aprendizagem continua", "aprendizagem ao longo da vida", "training program", "programa de treinamento",
+        "education policy", "politica educacional", "higher education", "ensino superior", "universities",
+        "universidade", "escola", "school system", "student outcomes", "pisa", "enem", "mec", "inep",
+        "edtech", "online learning", "ensino a distancia", "microcredentials", "micro credenciais",
+        "science of learning", "ciencia da aprendizagem", "instructional design", "design instrucional",
+        "apprenticeship", "aprendizagem profissional", "vocational training", "ensino tecnico", "curriculum"
+      ],
+      "weak": [
+        "learning", "aprendizagem", "aprendizado", "education", "educacao", "ensino", "training", "treinamento",
+        "curso", "course", "professor", "teacher", "aluno", "student", "campus", "diploma", "certificacao",
+        "capacitacao", "formacao", "mba", "faculdade"
+      ]
+    },
+    {
+      "id": "dei-equidade",
+      "label": "DEI e equidade",
+      "short": "DEI",
+      "description": "Diversidade, equidade e inclusão, representatividade e o debate global sobre o tema.",
+      "strong": [
+        "diversity equity and inclusion", "diversity and inclusion", "diversidade e inclusao", "dei",
+        "diversidade equidade e inclusao", "inclusive workplace", "ambiente inclusivo", "belonging",
+        "pertencimento", "gender gap", "desigualdade de genero", "pay gap", "equidade salarial", "gender pay gap",
+        "affirmative action", "acao afirmativa", "cotas raciais", "racial equity", "equidade racial",
+        "racism", "racismo", "discrimination", "discriminacao", "assedio", "harassment",
+        "women in leadership", "mulheres na lideranca", "lgbt", "lgbtqia", "acessibilidade", "accessibility",
+        "pessoa com deficiencia", "disability inclusion", "anti-dei", "dei backlash", "letramento racial",
+        "diversidade racial", "igualdade de genero", "gender equality", "inclusao social", "vies inconsciente",
+        "unconscious bias", "equidade"
+      ],
+      "weak": [
+        "diversity", "diversidade", "inclusion", "inclusao", "equity", "minorias", "minorities", "genero", "gender",
+        "raca", "racial", "negros", "black workers", "indigenas", "imigrantes", "immigrants", "representatividade",
+        "representation", "desigualdade", "inequality", "preconceito", "bias"
+      ]
+    },
+    {
+      "id": "performance-humana",
+      "label": "Performance e desenvolvimento humano",
+      "short": "Performance",
+      "description": "Ciência do desempenho, motivação, bem-estar, hábitos, neurociência aplicada e potencial humano.",
+      "strong": [
+        "human performance", "performance humana", "desenvolvimento humano", "human development",
+        "high performance", "alta performance", "peak performance", "desempenho humano",
+        "motivation science", "motivacao", "habit formation", "formacao de habitos", "habitos",
+        "behavioral science", "ciencia comportamental", "behavioural science", "neurociencia", "neuroscience",
+        "cognitive science", "ciencia cognitiva", "deliberate practice", "pratica deliberada",
+        "growth mindset", "mentalidade de crescimento", "resilience", "resiliencia", "grit",
+        "wellbeing at work", "bem-estar no trabalho", "well-being", "saude mental no trabalho",
+        "mental health at work", "burnout", "esgotamento", "flow state", "estado de flow",
+        "self-improvement", "autodesenvolvimento", "autoconhecimento", "coaching", "feedback culture",
+        "performance management", "gestao de desempenho", "avaliacao de desempenho", "potencial humano",
+        "soft skills", "habilidades socioemocionais", "inteligencia emocional", "emotional intelligence",
+        "sono e produtividade", "sleep science", "atencao plena", "mindfulness"
+      ],
+      "weak": [
+        "performance", "desempenho", "psychology", "psicologia", "mental health", "saude mental",
+        "wellness", "bem-estar", "motivation", "comportamento", "behavior", "behaviour", "habits",
+        "cerebro", "brain", "cognicao", "cognition", "potencial", "talento", "talent", "excelencia",
+        "estresse", "stress", "foco", "focus", "disciplina"
+      ]
+    },
+    {
+      "id": "economia-mercados",
+      "label": "Economia e mercados",
+      "short": "Economia",
+      "description": "Macroeconomia, juros, câmbio, indicadores e mercados financeiros.",
+      "strong": [
+        "interest rates", "taxa de juros", "central bank", "banco central", "federal reserve", "fed",
+        "copom", "selic", "inflation", "inflacao", "ipca", "cpi report", "monetary policy", "politica monetaria",
+        "fiscal policy", "politica fiscal", "recession", "recessao", "gdp", "pib", "unemployment rate",
+        "stock market", "bolsa de valores", "ibovespa", "s&p 500", "nasdaq", "wall street", "bond yields",
+        "treasury yields", "exchange rate", "cambio", "dolar", "real", "euro", "commodities", "oil prices",
+        "preco do petroleo", "tarifas", "tariffs", "trade deficit", "balanca comercial", "divida publica",
+        "public debt", "sovereign debt", "imf", "fmi", "world bank", "banco mundial", "arcabouco fiscal",
+        "reforma tributaria", "tax reform", "juros", "credito", "default"
+      ],
+      "weak": [
+        "economy", "economia", "economic", "economico", "market", "mercado", "investors", "investidores",
+        "growth", "crescimento", "prices", "precos", "financeiro", "financial", "banks", "bancos",
+        "consumer spending", "consumo", "budget", "orcamento", "impostos", "taxes", "moeda", "currency"
+      ]
+    },
+    {
+      "id": "ia-tecnologia",
+      "label": "IA e tecnologia",
+      "short": "IA e tech",
+      "description": "Inteligência artificial, big techs, regulação e impacto da tecnologia no trabalho.",
+      "strong": [
+        "artificial intelligence", "inteligencia artificial", "ai model", "modelo de ia", "generative ai",
+        "ia generativa", "large language model", "llm", "chatgpt", "openai", "anthropic", "claude",
+        "gemini", "deepmind", "copilot", "machine learning", "aprendizado de maquina", "deep learning",
+        "neural network", "rede neural", "agi", "ai agents", "agentes de ia", "ai safety", "seguranca da ia",
+        "ai regulation", "regulacao da ia", "ai act", "ai chips", "semiconductors", "semicondutores",
+        "nvidia", "data center", "centro de dados", "cloud computing", "computacao em nuvem",
+        "automation", "automacao", "robotics", "robotica", "quantum computing", "computacao quantica",
+        "cybersecurity", "seguranca cibernetica", "privacidade de dados", "data privacy", "lgpd", "gdpr",
+        "big tech", "antitrust", "plataformas digitais", "algoritmo", "algorithm", "software engineering",
+        "startup de tecnologia", "silicon valley", "vale do silicio"
+      ],
+      "weak": [
+        "technology", "tecnologia", "tech", "digital", "software", "hardware", "app", "aplicativo",
+        "internet", "dados", "data", "computer", "computador", "chip", "google", "microsoft", "apple",
+        "amazon", "meta", "tesla", "engenheiros", "developers", "codigo", "code", "plataforma"
+      ]
+    },
+    {
+      "id": "negocios-inovacao",
+      "label": "Negócios e inovação",
+      "short": "Negócios",
+      "description": "Estratégia corporativa, startups, fusões e aquisições e novos modelos de negócio.",
+      "strong": [
+        "merger", "acquisition", "fusao", "aquisicao", "m&a", "takeover", "buyout", "private equity",
+        "venture capital", "capital de risco", "startup funding", "rodada de investimento", "series a",
+        "series b", "ipo", "abertura de capital", "spin-off", "joint venture",
+        "business model", "modelo de negocio", "innovation", "inovacao", "disruption", "disrupcao",
+        "corporate strategy", "estrategia corporativa", "market share", "participacao de mercado",
+        "earnings report", "resultados trimestrais", "balanco trimestral", "revenue growth", "receita",
+        "supply chain", "cadeia de suprimentos", "logistics", "logistica", "unicornio", "unicorn",
+        "franquia", "franchise", "expansao internacional", "product launch", "lancamento de produto",
+        "bankruptcy", "falencia", "recuperacao judicial", "turnaround", "escalabilidade", "scale-up"
+      ],
+      "weak": [
+        "business", "negocios", "company", "empresa", "companies", "empresas", "corporate", "corporativo",
+        "industry", "industria", "setor", "sector", "clientes", "customers", "produto", "product",
+        "vendas", "sales", "lucro", "profit", "faturamento", "investment", "investimento", "founder", "fundador",
+        "empreendedor", "entrepreneur", "concorrencia", "competition"
+      ]
+    },
+    {
+      "id": "esg-clima",
+      "label": "ESG e clima",
+      "short": "ESG",
+      "description": "Sustentabilidade corporativa, regulação climática e transição energética.",
+      "strong": [
+        "esg", "sustentabilidade corporativa", "corporate sustainability", "climate change", "mudanca climatica",
+        "mudancas climaticas", "global warming", "aquecimento global", "carbon emissions", "emissoes de carbono",
+        "net zero", "neutralidade de carbono", "descarbonizacao", "decarbonization", "carbon credits",
+        "credito de carbono", "mercado de carbono", "carbon market", "cop30", "cop29", "cop31", "acordo de paris",
+        "paris agreement", "ipcc", "energy transition", "transicao energetica", "renewable energy",
+        "energia renovavel", "solar power", "energia solar", "wind power", "energia eolica", "hidrogenio verde",
+        "green hydrogen", "climate finance", "financas sustentaveis", "sustainable finance", "green bonds",
+        "titulos verdes", "greenwashing", "csrd", "relatorio de sustentabilidade", "sustainability report",
+        "biodiversidade", "biodiversity", "desmatamento", "deforestation", "amazonia", "amazon rainforest",
+        "economia circular", "circular economy", "impacto socioambiental", "licenciamento ambiental"
+      ],
+      "weak": [
+        "climate", "clima", "sustainability", "sustentabilidade", "sustentavel", "environment", "meio ambiente",
+        "ambiental", "environmental", "carbon", "carbono", "energy", "energia", "emissions", "emissoes",
+        "renovavel", "poluicao", "pollution", "verde", "green", "seca", "drought", "enchentes", "floods"
+      ]
+    },
+    {
+      "id": "geopolitica",
+      "label": "Geopolítica internacional",
+      "short": "Geopolítica",
+      "description": "Conflitos, comércio global, potências e organismos multilaterais.",
+      "strong": [
+        "geopolitics", "geopolitica", "foreign policy", "politica externa", "diplomacy", "diplomacia",
+        "sanctions", "sancoes", "trade war", "guerra comercial", "trade deal", "acordo comercial",
+        "nato", "otan", "united nations", "nacoes unidas", "onu", "security council", "conselho de seguranca",
+        "european union", "uniao europeia", "brics", "mercosul", "g7", "g20", "world trade organization", "omc",
+        "war in ukraine", "guerra na ucrania", "middle east", "oriente medio", "gaza", "israel", "iran",
+        "taiwan", "south china sea", "mar do sul da china", "china-us", "eua e china", "beijing", "pequim",
+        "kremlin", "moscow", "moscou", "white house", "casa branca", "pentagon", "pentagono",
+        "immigration policy", "politica migratoria", "refugees", "refugiados", "border crisis",
+        "military aid", "ajuda militar", "cessar-fogo", "ceasefire", "coup", "golpe de estado",
+        "eleicoes americanas", "us election", "trump", "putin", "xi jinping", "zelensky"
+      ],
+      "weak": [
+        "international", "internacional", "global", "mundial", "foreign", "estrangeiro", "war", "guerra",
+        "conflict", "conflito", "military", "militar", "troops", "tropas", "treaty", "tratado", "summit", "cupula",
+        "ambassador", "embaixador", "china", "russia", "russia", "estados unidos", "united states", "europa",
+        "europe", "africa", "asia", "america latina", "latin america"
+      ]
+    },
+    {
+      "id": "brasil-politica",
+      "label": "Política nacional (Brasil)",
+      "short": "Brasil",
+      "description": "Congresso, governo, eleições, STF e políticas públicas brasileiras.",
+      "strong": [
+        "congresso nacional", "camara dos deputados", "senado federal", "stf", "supremo tribunal federal",
+        "planalto", "palacio do planalto", "governo lula", "presidente lula", "esplanada dos ministerios",
+        "ministerio da fazenda", "ministro da fazenda", "haddad", "banco central do brasil",
+        "eleicoes 2026", "eleicoes municipais", "tse", "tribunal superior eleitoral", "urna eletronica",
+        "reforma administrativa", "medida provisoria", "pec", "projeto de lei", "sancao presidencial",
+        "veto presidencial", "cpi", "comissao parlamentar", "orcamento da uniao", "loa", "ldo",
+        "emendas parlamentares", "centrao", "bancada", "governadores", "assembleia legislativa",
+        "policia federal", "pgr", "procuradoria-geral", "tcu", "cgu", "sus", "bolsa familia",
+        "salario minimo", "ibge", "ipea", "bndes", "petrobras", "vale", "brasilia"
+      ],
+      "weak": [
+        "brasil", "brazil", "brazilian", "brasileiro", "brasileira", "governo federal", "federal government",
+        "ministro", "minister", "deputado", "senador", "presidente", "president", "politica", "politics",
+        "sao paulo", "rio de janeiro", "estado", "municipio", "prefeito", "justica", "court", "lei", "law"
+      ]
+    },
+    {
+      "id": "cultura-comportamento",
+      "label": "Cultura e comportamento",
+      "short": "Cultura",
+      "description": "Sociedade, tendências culturais, mídia e ensaios de fundo.",
+      "strong": [
+        "cultural shift", "mudanca cultural", "generation z", "geracao z", "gen z", "millennials", "geracao y",
+        "baby boomers", "generational divide", "conflito de geracoes", "social media impact", "redes sociais",
+        "misinformation", "desinformacao", "fake news", "polarization", "polarizacao", "culture war",
+        "guerra cultural", "loneliness epidemic", "epidemia de solidao", "declining birth rate", "natalidade",
+        "envelhecimento populacional", "aging population", "urbanizacao", "housing crisis", "crise da moradia",
+        "consumer behavior", "comportamento do consumidor", "identity politics", "religiao e sociedade",
+        "literatura", "literature", "filosofia", "philosophy", "historia", "history essay", "antropologia",
+        "cinema", "documentario", "arte contemporanea", "museu", "streaming wars", "industria criativa",
+        "creative industry", "jornalismo", "journalism", "liberdade de expressao", "free speech"
+      ],
+      "weak": [
+        "society", "sociedade", "social", "cultura", "culture", "cultural", "book", "livro", "film", "filme",
+        "music", "musica", "arte", "art", "media", "midia", "opiniao", "opinion", "essay", "ensaio",
+        "geracao", "generation", "tendencia", "trend", "valores", "values", "familia", "family",
+        "comunidade", "community", "religiao", "religion"
+      ]
+    }
+  ]
+}
