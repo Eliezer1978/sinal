@@ -1,0 +1,98 @@
+name: Coleta diária
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 em Brasília (UTC-3).
+    # Nota: o GitHub agenda por UTC e não segue horário de verão.
+    # Se o Brasil voltar a adotar horário de verão, ajuste para "0 8 * * *".
+    - cron: '0 9 * * *'
+  workflow_dispatch:        # permite rodar na mão pela aba Actions
+    inputs:
+      pular_ia:
+        description: 'Rodar sem a camada de IA (sem tradução nem curadoria)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write           # para gravar a edição do dia no repositório
+  pages: write
+  id-token: write
+
+concurrency:
+  group: coleta
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Coletar feeds
+        run: node collector/collect.mjs
+        env:
+          WINDOW_HOURS: '48'
+          PER_SOURCE_CAP: '25'
+          GLOBAL_CAP: '700'
+
+      - name: Traduzir e escrever a curadoria
+        if: ${{ github.event.inputs.pular_ia != 'true' }}
+        run: node collector/enrich.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAX_TRANSLATE: '400'
+
+      - name: Podar arquivos com mais de 30 dias
+        run: node collector/prune.mjs
+
+      - name: Guardar a edição no repositório
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/data
+          if git diff --staged --quiet; then
+            echo "Nada mudou nesta coleta."
+          else
+            git commit -m "Edição de $(TZ=America/Sao_Paulo date '+%d/%m/%Y %H:%M')"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Resumo
+        run: |
+          echo "### Edição publicada" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Site: ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const d = require('./site/data/latest.json');
+            const l = [];
+            l.push('- Matérias publicadas: **' + d.stats.publishedItems + '** (de ' + d.stats.rawItems + ' brutas)');
+            l.push('- Fontes que responderam: **' + d.stats.sourcesOk + '/' + d.stats.sourcesTotal + '**');
+            l.push('- Curadoria por IA: **' + (d.aiEnabled ? 'ativa' : 'desligada') + '**');
+            const down = d.sources.filter(s => !s.ok);
+            if (down.length) {
+              l.push('');
+              l.push('<details><summary>Fontes que falharam (' + down.length + ')</summary>');
+              l.push('');
+              down.forEach(s => l.push('- \`' + s.id + '\`: ' + s.error));
+              l.push('');
+              l.push('</details>');
+            }
+            console.log(l.join('\n'));
+          " >> $GITHUB_STEP_SUMMARY
