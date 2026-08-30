@@ -78,8 +78,14 @@ async function pickModels() {
   } catch (e) {
     console.log(`  aviso: não consegui listar modelos (${e.message}); usando os nomes padrão`);
   }
-  const newest = (kind) =>
-    ids.filter((id) => id.includes(kind)).sort().reverse()[0] || null;
+  // Prefere versões datadas às apelidadas. O apelido pode aparecer na lista da
+  // conta e mesmo assim recusar a chamada — foi o que aconteceu com
+  // "claude-sonnet-5" aqui. A versão datada sempre existe de verdade.
+  const newest = (kind) => {
+    const candidatos = ids.filter((id) => id.includes(kind));
+    const datados = candidatos.filter((id) => /-\d{8}$/.test(id));
+    return (datados.length ? datados : candidatos).sort().reverse()[0] || null;
+  };
 
   const translate = CFG.translateModel || newest('haiku') || newest('sonnet') || 'claude-haiku-4-5';
   const briefing = CFG.briefingModel || newest('sonnet') || newest('opus') || translate;
