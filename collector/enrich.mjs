@@ -17,6 +17,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { regroup } from './cluster.mjs';
+import { gravarEdicao } from './saida.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA = join(__dirname, '..', 'site', 'data', 'latest.json');
@@ -99,7 +100,13 @@ function parseJson(raw) {
   const lastArr = s.lastIndexOf(']'), lastObj = s.lastIndexOf('}');
   const end = Math.max(lastArr, lastObj);
   if (end > 0) s = s.slice(0, end + 1);
-  return JSON.parse(s);
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    // sem um pedaço do texto recebido, a próxima investigação vira adivinhação
+    const amostra = raw.trim().slice(0, 160).replace(/\s+/g, ' ');
+    throw new Error(`JSON inválido (${e.message}) — veio: "${amostra}…"`);
+  }
 }
 
 async function pool(items, limit, worker) {
@@ -180,7 +187,7 @@ Devolva SOMENTE um objeto JSON, sem cerca de código:
 Use de 4 a 7 blocos, ordenados por importância. Em "ids", liste os identificadores das matérias que sustentam o bloco (use os ids exatamente como recebidos).`;
 }
 
-async function makeBriefing(items, topicLabels, model) {
+async function makeBriefing(items, topicLabels, model, maxTokens = 8000) {
   const digest = items.map((it) => ({
     id: it.id,
     fonte: it._sourceName,
@@ -193,7 +200,7 @@ async function makeBriefing(items, topicLabels, model) {
     method: 'POST',
     body: JSON.stringify({
       model,
-      max_tokens: 4000,
+      max_tokens: maxTokens,
       temperature: 0.3,
       system: briefingSystem(topicLabels),
       messages: [{
@@ -291,17 +298,35 @@ async function main() {
   // --- análise do dia -------------------------------------------------------
   const topicLabels = data.topics.map((t) => t.label).join(', ');
   const topItems = data.items.slice(0, CFG.briefingItems);
-  try {
-    const { briefing, usage: bu } = await makeBriefing(topItems, topicLabels, models.briefing);
-    data.briefing = briefing;
-    usage.input += bu?.input_tokens || 0;
-    usage.output += bu?.output_tokens || 0;
-    usage.calls++;
-    console.log(`→ análise do dia pronta: "${briefing.headline}"`);
-  } catch (e) {
-    console.log(`✗ análise do dia falhou: ${e.message}`);
-    data.briefing = null;
+
+  // Duas tentativas com modelos diferentes. Um modelo indisponível na conta,
+  // ou uma resposta cortada, não podem custar a análise do dia inteira — e o
+  // motivo da falha precisa sobrar registrado, senão vira adivinhação.
+  const tentativas = [models.briefing];
+  if (models.translate !== models.briefing) tentativas.push(models.translate);
+
+  const erros = [];
+  for (const modelo of tentativas) {
+    try {
+      const { briefing, usage: bu } = await makeBriefing(topItems, topicLabels, modelo);
+      if (!briefing || !briefing.headline || !Array.isArray(briefing.blocks)) {
+        throw new Error('resposta sem manchete ou sem blocos');
+      }
+      data.briefing = briefing;
+      usage.input += bu?.input_tokens || 0;
+      usage.output += bu?.output_tokens || 0;
+      usage.calls++;
+      models.briefingUsado = modelo;
+      console.log(`→ análise do dia pronta com ${modelo}: "${briefing.headline}"`);
+      break;
+    } catch (e) {
+      const msg = `${modelo}: ${e.message}`;
+      erros.push(msg);
+      console.log(`✗ análise do dia falhou com ${msg}`);
+      data.briefing = null;
+    }
   }
+  if (!data.briefing) data.briefingErro = erros.join(' | ');
 
   // --- fecha ----------------------------------------------------------------
   for (const it of data.items) delete it._sourceName;
@@ -315,10 +340,8 @@ async function main() {
     durationMs: Date.now() - t0,
   };
 
-  await writeFile(DATA, JSON.stringify(data), 'utf8');
-
-  const day = new Date().toISOString().slice(0, 10);
-  await writeFile(join(__dirname, '..', 'site', 'data', 'archive', `${day}.json`), JSON.stringify(data), 'utf8');
+  // regrava latest e o arquivo do dia, agora com tradução e curadoria
+  await gravarEdicao(data);
 
   console.log(`✓ IA concluída em ${((Date.now() - t0) / 1000).toFixed(1)}s — ${usage.calls} chamadas, ${usage.input.toLocaleString('pt-BR')} tokens de entrada, ${usage.output.toLocaleString('pt-BR')} de saída`);
 }

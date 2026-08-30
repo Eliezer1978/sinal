@@ -9,11 +9,12 @@
  * Saída: site/data/latest.json
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { XMLParser } from 'fast-xml-parser';
 import { tokens as fingerprintTokens, clusterItems } from './cluster.mjs';
+import { gravarEdicao } from './saida.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -259,6 +260,24 @@ function gnewsUrl(source) {
   const ceid = source.lang === 'pt' ? 'BR:pt-419' : source.lang === 'es' ? 'ES:es' : `${gl}:en`;
   const q = encodeURIComponent(`${source.query} when:2d`);
   return `https://news.google.com/rss/search?q=${q}&hl=${lang}&gl=${gl}&ceid=${ceid}`;
+}
+
+/**
+ * Identidade estável de uma matéria, derivada do link.
+ *
+ * Antes o id era a posição na lista, o que fazia a mesma notícia mudar de
+ * identidade a cada coleta. Isso é aceitável num site que só mostra o dia de
+ * hoje, e inaceitável agora que existem favoritos, descartes e acervo de 30
+ * dias: a marcação de ontem cairia sobre outra matéria hoje.
+ */
+function hashId(str) {
+  let a = 0x811c9dc5, b = 0x1b873593;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b + c + i, 0x85ebca6b) >>> 0;
+  }
+  return (a.toString(36) + b.toString(36)).replace(/[^a-z0-9]/g, '').slice(0, 12);
 }
 
 const TRACKING = /^(utm_|fbclid|gclid|mc_cid|mc_eid|ref|ref_src|smid|partner|CMP|cmp|ito|at_|guccounter)/;
@@ -584,8 +603,8 @@ async function main() {
         collected: h?.items ?? 0,
       };
     }),
-    items: capped.map((it, idx) => ({
-      id: `i${idx}`,
+    items: capped.map((it) => ({
+      id: hashId(it.canonical),
       title: it.title,
       summary: it.summary,
       url: it.url,
@@ -600,13 +619,8 @@ async function main() {
     })),
   };
 
-  const dataDir = join(ROOT, 'site', 'data');
-  await mkdir(join(dataDir, 'archive'), { recursive: true });
-  await writeFile(join(dataDir, 'latest.json'), JSON.stringify(out), 'utf8');
-
-  // arquivo do dia, para consultar edições passadas
-  const day = new Date().toISOString().slice(0, 10);
-  await writeFile(join(dataDir, 'archive', `${day}.json`), JSON.stringify(out), 'utf8');
+  const { dia, totalDias } = await gravarEdicao(out);
+  console.log(`→ edição de ${dia} gravada; acervo com ${totalDias} dia(s)`);
 
   const failed = health.filter((h) => !h.ok);
   if (failed.length) {
