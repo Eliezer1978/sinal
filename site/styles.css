@@ -523,9 +523,135 @@ select { cursor: pointer; }
 .loadfail h2 { font-family: var(--display); font-size: 19px; margin: 0 0 9px; color: var(--ink); font-weight: 500; }
 .loadfail code { font-family: var(--mono); font-size: 12px; background: var(--bg-sunk); padding: 1px 4px; }
 
+/* ---------------------------------------------------------- acervo pessoal */
+
+.dica {
+  background: var(--accent); color: var(--accent-ink);
+  font-size: 13px; line-height: 1.5;
+  padding-top: env(safe-area-inset-top);
+}
+.dica-inner { display: flex; align-items: center; gap: 12px; padding-top: 10px; padding-bottom: 10px; }
+.dica p { margin: 0; flex: 1; }
+.dica button {
+  border: 0; background: none; color: inherit; font-size: 20px; line-height: 1;
+  cursor: pointer; opacity: .7; padding: 0 4px; flex: none;
+}
+.dica button:hover { opacity: 1; }
+
+.panel-pessoal { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+
+.vistas { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+.vista-btn {
+  font: inherit; font-size: 12.5px; font-weight: 450;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: background .13s, border-color .13s, color .13s;
+}
+.vista-btn:hover { border-color: var(--ink-4); color: var(--ink); }
+.vista-btn.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.vista-btn.is-on .pill { background: var(--accent-ink); color: var(--accent); }
+
+.pessoal-acoes { display: flex; gap: 10px; margin-bottom: 8px; }
+
+.aprendizado { font-size: 12.5px; }
+.apr-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 4px 0; border-bottom: 1px solid var(--line-soft); color: var(--ink-2);
+}
+.apr-row:last-child { border-bottom: 0; }
+.apr-n {
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  font-variant-numeric: tabular-nums; flex: none;
+}
+.apr-sub {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--ink-4);
+  margin: 16px 0 6px;
+}
+
+/* ---------------------------------------------------------- ações na matéria */
+
+.acoes { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 10px; }
+
+.acao {
+  font: inherit; font-size: 11.5px; color: var(--ink-3);
+  background: transparent; border: 1px solid transparent;
+  padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer;
+  transition: color .13s, border-color .13s, background .13s;
+}
+.acao:hover { color: var(--ink); border-color: var(--line); background: var(--card); }
+.acao.is-fav { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); font-weight: 500; }
+.acao-fonte { color: var(--ink-4); }
+.acao-fonte:hover { color: var(--alarm); border-color: var(--alarm); }
+.acao-nota { font-size: 11.5px; color: var(--ink-4); font-style: italic; }
+
+/* no toque não existe passar o mouse: os botões precisam estar sempre visíveis */
+@media (hover: hover) and (pointer: fine) {
+  .acoes { opacity: .55; transition: opacity .15s; }
+  .art:hover .acoes, .acoes:focus-within { opacity: 1; }
+}
+
+.art.is-favorita { border-left: 2px solid var(--accent); padding-left: 13px; margin-left: -15px; }
+.art.is-descartada { opacity: .5; }
+.art.is-descartada .art-title a { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.menu-motivo {
+  margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); box-shadow: var(--shadow-lift); padding: 6px;
+  max-width: 420px;
+}
+.menu-titulo {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-4); margin: 4px 6px 8px;
+}
+.menu-item {
+  display: block; width: 100%; text-align: left; font: inherit;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 8px 8px; border-radius: var(--radius-sm); color: var(--ink-2);
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--bg-sunk); color: var(--ink); }
+.menu-item b { display: block; font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+.menu-item small { display: block; font-size: 11.5px; color: var(--ink-4); line-height: 1.4; }
+.menu-cancelar {
+  font: inherit; font-size: 11.5px; border: 0; background: none; color: var(--ink-4);
+  cursor: pointer; padding: 6px 8px; text-decoration: underline; text-underline-offset: 2px;
+}
+.menu-cancelar:hover { color: var(--ink); }
+
+.tag-vista { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* ---------------------------------------------------------- aviso */
+
+.aviso {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 60; max-width: min(520px, calc(100vw - 32px));
+  background: var(--ink); color: var(--bg);
+  font-size: 13px; line-height: 1.45; padding: 11px 16px;
+  border-radius: var(--radius); box-shadow: var(--shadow-lift);
+}
+
+.foot-acervo {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-4);
+  margin: 14px 0 0; font-variant-numeric: tabular-nums;
+}
+
 /* ---------------------------------------------------------- responsivo */
 
 .scrim { position: fixed; inset: 0; background: rgba(10,14,13,.5); z-index: 40; }
+
+/* instalado na tela de início: não há barra do Safari, então o conteúdo
+   precisa respeitar sozinho a área do relógio e do indicador inferior */
+@media (display-mode: standalone) {
+  .masthead { padding-top: env(safe-area-inset-top); }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .aviso { bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .sidebar-scroll { padding-top: calc(24px + env(safe-area-inset-top)); }
+}
+.wrap {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; gap: 0; padding-top: 20px; }
@@ -548,7 +674,10 @@ select { cursor: pointer; }
 }
 
 @media (max-width: 560px) {
-  .wrap { padding: 0 17px; }
+  .wrap {
+    padding-left: max(17px, env(safe-area-inset-left));
+    padding-right: max(17px, env(safe-area-inset-right));
+  }
   .masthead-actions { width: 100%; justify-content: space-between; gap: 6px; }
   .seg-btn { padding: 7px 9px; font-size: 12px; }
   .btn { padding: 7px 10px; font-size: 12.5px; }

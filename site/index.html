@@ -6,15 +6,33 @@
 <title>Sinal — clipping diário</title>
 <meta name="description" content="Clipping diário montado a partir dos principais veículos nacionais e internacionais, filtrável por tema e por fonte.">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eceeed" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1413" media="(prefers-color-scheme: dark)">
+
+<!-- instalação na tela de início do iPhone -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sinal">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icones/icone-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icones/icone-192.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%231d5c47'/><path d='M6 20h3l3-9 4 14 3-11 2 6h5' fill='none' stroke='%23f4faf7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 </head>
 <body>
 
 <a class="skip-link" href="#results">Pular para as notícias</a>
+
+<div id="dica-instalar" class="dica" hidden>
+  <div class="wrap dica-inner">
+    <p>Para virar aplicativo: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p>
+    <button data-fechar-dica aria-label="Fechar aviso">×</button>
+  </div>
+</div>
 
 <header class="masthead">
   <div class="wrap masthead-inner">
@@ -39,6 +57,21 @@
 
   <aside id="sidebar" class="sidebar" aria-label="Filtros">
     <div class="sidebar-scroll">
+
+      <section class="panel panel-pessoal">
+        <div class="panel-head"><h2>Minha lista</h2></div>
+        <div class="vistas">
+          <button class="vista-btn is-on" data-vista="tudo">Tudo</button>
+          <button class="vista-btn" data-vista="favoritos">Favoritas <span id="conta-fav" class="pill"></span></button>
+          <button class="vista-btn" data-vista="descartados">Descartadas <span id="conta-desc" class="pill"></span></button>
+        </div>
+        <div class="pessoal-acoes">
+          <button id="exportar" class="linkish">exportar meus dados</button>
+          <button id="importar" class="linkish">importar</button>
+          <input type="file" id="arquivo-import" accept="application/json,.json" hidden>
+        </div>
+        <p class="panel-hint">Favoritos, descartes e fontes esquecidas ficam neste aparelho. Exporte para levar ao iPhone.</p>
+      </section>
 
       <div class="field">
         <label class="field-label" for="q">Buscar</label>
@@ -66,7 +99,21 @@
       </section>
 
       <section class="panel">
+        <div class="panel-head"><h2>O que o site aprendeu</h2></div>
+        <div id="aprendizado-body" class="aprendizado"></div>
+      </section>
+
+      <section class="panel">
         <div class="panel-head"><h2>Exibição</h2></div>
+        <div class="field">
+          <label class="field-label" for="periodo">Período</label>
+          <select id="periodo">
+            <option value="24h">Últimas 24 horas</option>
+            <option value="edicao">Edição de hoje</option>
+            <option value="7d" selected>Últimos 7 dias</option>
+            <option value="30d">Últimos 30 dias</option>
+          </select>
+        </div>
         <div class="field">
           <label class="field-label" for="sort">Ordenar por</label>
           <select id="sort">
@@ -75,15 +122,8 @@
             <option value="coverage">Maior cobertura</option>
           </select>
         </div>
-        <div class="field">
-          <label class="field-label" for="window">Período</label>
-          <select id="window">
-            <option value="24">Últimas 24 horas</option>
-            <option value="48" selected>Últimas 48 horas</option>
-            <option value="0">Tudo que foi coletado</option>
-          </select>
-        </div>
         <label class="check"><input type="checkbox" id="hide-paywall"> <span>Ocultar matérias com paywall</span></label>
+        <label class="check"><input type="checkbox" id="ver-descartados"> <span>Mostrar também as descartadas</span></label>
         <label class="check"><input type="checkbox" id="compact"> <span>Modo compacto</span></label>
       </section>
 
@@ -100,8 +140,8 @@
     <div id="results" class="results" tabindex="-1"></div>
 
     <div id="empty" class="empty" hidden>
-      <p class="empty-title">Nenhuma matéria com esses filtros.</p>
-      <p>Tente ampliar o período, limpar a busca ou desmarcar alguns temas.</p>
+      <p class="empty-title" id="empty-title">Nenhuma matéria com esses filtros.</p>
+      <p id="empty-text">Tente ampliar o período, limpar a busca ou desmarcar alguns temas.</p>
       <button class="btn btn-ghost" id="empty-reset">Restaurar padrão</button>
     </div>
 
@@ -112,6 +152,7 @@
         <summary>Situação das fontes</summary>
         <div id="health-body"></div>
       </details>
+      <p class="foot-acervo" id="acervo-info"></p>
       <p class="foot-note" id="foot-note"></p>
     </footer>
   </main>
@@ -119,6 +160,7 @@
 </div>
 
 <div id="scrim" class="scrim" hidden></div>
+<div id="aviso" class="aviso" role="status" hidden></div>
 
 <script src="app.js"></script>
 </body>
