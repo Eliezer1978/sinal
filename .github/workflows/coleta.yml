@@ -87,6 +87,14 @@ jobs:
             l.push('- Matérias publicadas: **' + d.stats.publishedItems + '** (de ' + d.stats.rawItems + ' brutas)');
             l.push('- Fontes que responderam: **' + d.stats.sourcesOk + '/' + d.stats.sourcesTotal + '**');
             l.push('- Curadoria por IA: **' + (d.aiEnabled ? 'ativa' : 'desligada') + '**');
+            if (d.ai) {
+              l.push('- Traduzidas: **' + (d.ai.translatedCount || 0) + '**' +
+                ' · modelo ' + '\`' + (d.ai.models && d.ai.models.translate) + '\`');
+              l.push('- Análise do dia: ' + (d.briefing
+                ? '**pronta** com \`' + (d.ai.models.briefingUsado || d.ai.models.briefing) + '\`'
+                : '**falhou** — ' + (d.briefingErro || 'motivo não registrado')));
+            }
+            if (d.acervo) l.push('- Acervo: **' + d.acervo.dias.length + '** dia(s) guardado(s)');
             const down = d.sources.filter(s => !s.ok);
             if (down.length) {
               l.push('');
