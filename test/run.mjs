@@ -129,6 +129,40 @@ check('contagem por fonte bate com os itens',
 check('fontes quebradas aparecem com o motivo do erro',
   data.sources.filter((s) => !s.ok).every((s) => typeof s.error === 'string' && s.error.length > 0));
 
+console.log('\n── Acervo e identidade estável ───────────────────────');
+{
+  const ids = items.map((i) => i.id);
+  check('todo id é derivado do link, não da posição',
+    ids.every((id) => /^[a-z0-9]{6,12}$/.test(id) && !/^i\d+$/.test(id)), ids.slice(0, 3).join(', '));
+  check('não há id repetido', new Set(ids).size === ids.length);
+
+  const dia = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  const arquivoDoDia = join(ROOT, 'site/data/dias', `${dia}.json`);
+  let diario = null;
+  try { diario = JSON.parse(await readFile(arquivoDoDia, 'utf8')); } catch { /* ausente */ }
+  check('a edição do dia foi gravada em arquivo próprio', Boolean(diario), arquivoDoDia);
+  check('o arquivo do dia traz os mesmos itens do latest',
+    diario && diario.itens.length === items.length);
+
+  let indice = null;
+  try { indice = JSON.parse(await readFile(join(ROOT, 'site/data/indice.json'), 'utf8')); } catch { /* ausente */ }
+  check('o índice lista o dia gravado',
+    indice && indice.dias.some((d) => d.dia === dia), indice && JSON.stringify(indice.dias));
+
+  // o mesmo link precisa render o mesmo id em coletas diferentes
+  const { execSync } = await import('node:child_process');
+  void execSync;
+  const antes = new Map(items.map((i) => [i.url, i.id]));
+  const res2 = await run('collector/collect.mjs', {
+    FEEDS_FILE: tmpFeeds, WINDOW_HOURS: '48', RETRIES: '0', TIMEOUT_MS: '5000',
+  });
+  const depois = JSON.parse(await readFile(join(ROOT, 'site/data/latest.json'), 'utf8'));
+  const estaveis = depois.items.filter((i) => antes.has(i.url) && antes.get(i.url) === i.id).length;
+  check('recoletar não muda o id de nenhuma matéria',
+    res2.code === 0 && estaveis === depois.items.filter((i) => antes.has(i.url)).length,
+    `${estaveis} de ${depois.items.filter((i) => antes.has(i.url)).length} mantiveram o id`);
+}
+
 console.log('\n── Segundo passe: agrupar depois de traduzir ─────────');
 {
   // Simula o que a tradução devolveria, sem gastar chamada de API.
