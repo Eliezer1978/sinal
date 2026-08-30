@@ -50,8 +50,10 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAX_TRANSLATE: '400'
 
-      - name: Podar arquivos com mais de 30 dias
+      - name: Podar o acervo além de 30 dias
         run: node collector/prune.mjs
+        env:
+          KEEP_DAYS: '30'
 
       - name: Guardar a edição no repositório
         run: |
