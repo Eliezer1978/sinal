@@ -11,6 +11,8 @@
     "edicao": "node collector/collect.mjs && node collector/enrich.mjs",
     "servir": "node --run coletar && npx --yes serve site -l 5173",
     "preview": "node collector/build-preview.mjs",
+    "icones": "node collector/icones.mjs",
+    "telas": "node test/shot.mjs",
     "test": "node test/run.mjs"
   },
   "dependencies": {

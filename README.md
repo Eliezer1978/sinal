@@ -111,6 +111,85 @@ GitHub atrasa alguns minutos em horários de pico — não é defeito.
 
 ---
 
+## O acervo de 30 dias
+
+Cada coleta grava a edição em `site/data/dias/AAAA-MM-DD.json` e atualiza
+`site/data/indice.json`. O site abre com `latest.json` — instantâneo — e busca
+os arquivos de dia que o período pedir, em segundo plano. Por padrão são os
+últimos 7 dias; o seletor de período vai até 30.
+
+Um mesmo link aparece em vários arquivos de dia, porque as janelas de coleta se
+sobrepõem. O site junta tudo pelo `id`, que é derivado do endereço da matéria e
+por isso **não muda de um dia para o outro**. É essa estabilidade que permite que
+um favorito marcado hoje continue sendo o mesmo favorito daqui a três semanas.
+
+O `prune.mjs` apaga os dias além de 30 e reconstrói o índice. O repositório
+cresce cerca de 350 KB por dia de histórico do git; em um ano fica na casa de
+100 MB, bem dentro do que o GitHub comporta.
+
+---
+
+## Favoritos, descartes e fontes esquecidas
+
+Três ações aparecem em cada matéria. Tudo o que você marca fica **neste
+aparelho**, no armazenamento do navegador. Nada disso sai daqui: não há conta,
+não há servidor, ninguém mais vê.
+
+**Favoritar** guarda uma cópia própria da matéria — título, resumo, fonte, link
+e data. Por isso o favorito sobrevive à poda do acervo: mesmo quando o dia sai
+dos 30, a matéria continua na sua lista. Só sai se você desmarcar.
+
+**Descartar** pergunta o motivo, e o motivo tem consequência:
+
+| Motivo | O que o site faz |
+|---|---|
+| Não tem a ver com meus temas | Penaliza aquela combinação de fonte e tema no ranking |
+| Notícia local ou factual demais | Penaliza a fonte inteira, e um pouco mais no tema em questão |
+| Só remover, sem motivo | Some da lista e não ensina nada |
+
+A penalidade entra direto na ordenação, do lado do navegador, e vale no máximo
+0,4 ponto — o suficiente para empurrar para baixo, nunca para sumir de vez.
+O painel **O que o site aprendeu**, na barra lateral, mostra as combinações
+penalizadas e de quanto. Restaurar um descarte desfaz o aprendizado dele, porque
+as penalidades são recalculadas a partir dos descartes vigentes, não guardadas
+à parte.
+
+**Esquecer fonte** tira o veículo da vista, das contagens e da barra lateral.
+É reversível a um clique, em "Fontes esquecidas". Se você quiser eliminar a
+fonte de vez — economizando o tempo de coleta —, apague o bloco dela em
+`collector/feeds.json`.
+
+### Levar para outro aparelho
+
+Enquanto não houver sincronia de verdade, use **exportar meus dados** e
+**importar**, na barra lateral. O arquivo traz favoritos, descartes, fontes
+esquecidas e preferências. A importação é somativa: nunca sobrescreve o que já
+existe no aparelho de destino.
+
+Sincronia automática entre Mac e iPhone exigiria um serviço à parte — dá para
+fazer com a camada gratuita do Cloudflare Workers, e o código já está separado
+o bastante para receber isso sem reescrita.
+
+---
+
+## Instalar no iPhone
+
+O site é um aplicativo instalável. No iPhone, abra
+<https://eliezer1978.github.io/sinal/> no Safari, toque em **Compartilhar** e
+depois em **Adicionar à Tela de Início**. Ele ganha ícone próprio, abre em tela
+cheia sem a barra do Safari e continua mostrando a última edição mesmo sem
+internet — no avião, no metrô.
+
+Não passa pela App Store e não custa nada. Um `service worker` guarda a página e
+a última edição; os dados são buscados na rede primeiro e só caem para a cópia
+guardada quando não há conexão.
+
+Os ícones são gerados por `npm run icones`, sem depender de nenhuma biblioteca:
+o script desenha as barras e escreve o PNG na mão. Para mudar a marca ou a cor,
+edite `collector/icones.mjs` e rode de novo.
+
+---
+
 ## Mexer nas fontes
 
 Tudo mora em `collector/feeds.json`. Cada fonte é um objeto:
@@ -284,6 +363,8 @@ npm run edicao           # os dois de uma vez
 npm run servir           # coleta e abre em http://localhost:5173
 npm test                 # testa o pipeline inteiro contra feeds simulados
 npm run preview          # gera a prévia de arquivo único com dados fictícios
+npm run telas            # abre a prévia num Chromium e exercita a interface
+npm run icones           # regera os ícones do aplicativo
 ```
 
 Variáveis de ambiente úteis:
@@ -309,18 +390,24 @@ collector/
   collect.mjs         busca, normaliza, deduplica, classifica e ranqueia
   cluster.mjs         agrupamento de matérias sobre o mesmo fato
   enrich.mjs          tradução e análise do dia (opcional)
-  prune.mjs           limpeza do arquivo antigo
+  saida.mjs           grava a edição, o arquivo do dia e o índice do acervo
+  prune.mjs           poda o acervo além de 30 dias
+  icones.mjs          gera os ícones do aplicativo
   build-preview.mjs   gera a prévia de arquivo único
 site/
   index.html          estrutura da página
   styles.css          identidade visual, temas claro e escuro
-  app.js              filtros, busca, ordenação, tudo no navegador
+  app.js              filtros, busca, favoritos, descartes, tudo no navegador
+  sw.js               funcionamento offline e abertura instantânea
+  manifest.webmanifest  o que faz o site virar aplicativo instalável
+  icones/             ícones do aplicativo, em PNG
   data/latest.json    a edição atual (gerada, não edite)
-  data/archive/       últimos 30 dias
+  data/indice.json    que dias existem no acervo
+  data/dias/          uma edição por dia, últimos 30
 test/
   mock-feeds.mjs      servidor de feeds falsos, com defeitos propositais
-  run.mjs             39 verificações do pipeline
-  shot.mjs            abre a prévia num Chromium e confere a interface
+  run.mjs             45 verificações do pipeline
+  shot.mjs            exercita a interface num Chromium e captura telas
 .github/workflows/
   coleta.yml          a automação diária
 ```
