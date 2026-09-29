@@ -42,7 +42,10 @@ async function reconstruirIndice() {
 export async function gravarEdicao(out) {
   await mkdir(DIAS, { recursive: true });
 
-  const dia = diaDaEdicao();
+  // O dia vem de quando a edição foi coletada, não de quando este código roda.
+  // Sem isso, uma tradução executada depois da meia-noite gravaria a edição de
+  // ontem como se fosse a de hoje, duplicando o dia no acervo.
+  const dia = diaDaEdicao(out.generatedAt ? new Date(out.generatedAt) : new Date());
 
   // arquivo do dia: só os itens, os metadados vêm do latest
   await writeFile(
