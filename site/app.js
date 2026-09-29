@@ -491,7 +491,16 @@
         Math.round(horas) + ' horas</span>');
     }
 
-    if (data.aiEnabled) {
+    // Três estados, não dois. Com a tradução rodando em cadência própria, o
+    // caso comum passa a ser "as mais recentes traduzidas, o rabo da lista no
+    // original". Isso não é falha, é a cota — e a cota é gasta de cima para
+    // baixo, na mesma ordem em que a tela mostra. Por isso o número aparece
+    // em tom neutro: é informação, não alarme.
+    var ia = data.ai || {};
+    if (data.aiEnabled && ia.pendentes > 0 && ia.estrangeiras) {
+      partes.push('<span title="A tradução começa pelas mais recentes, na mesma ordem em que aparecem aqui. Para completar o resto, rode a tradução no GitHub: Actions → Coleta diária → Run workflow.">' +
+        '<b>' + ia.translatedCount + '</b> de <b>' + ia.estrangeiras + '</b> traduzidas</span>');
+    } else if (data.aiEnabled) {
       partes.push('curadoria por IA ativa');
     } else if (!data.demo) {
       var m = motivoDaIaDesligada();
