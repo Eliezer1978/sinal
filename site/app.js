@@ -456,6 +456,9 @@
   function motivoDaIaDesligada() {
     var erro = String(data.briefingErro || data.aiNote || '');
     var bruto = erro || 'a camada de IA não rodou nesta coleta';
+    if (/só de coleta|cadência/i.test(String(data.aiNote || ''))) {
+      return { curto: 'a tradução ainda não rodou para esta edição', detalhe: bruto };
+    }
     if (data.aiNote || /nenhuma chave/i.test(erro)) {
       return { curto: 'nenhuma chave de API configurada', detalhe: bruto };
     }
