@@ -44,7 +44,7 @@
     topics: new Set(),
     offSources: new Set(),
     lang: 'pt',
-    sort: 'score',
+    sort: 'time',          // cronológico é o padrão: o mais recente primeiro
     periodo: '7d',
     vista: 'tudo',
     q: '',
@@ -100,6 +100,7 @@
       lang: state.lang, sort: state.sort, periodo: state.periodo,
       hidePaywall: state.hidePaywall, compact: state.compact,
       mostrarDescartados: state.mostrarDescartados,
+      ordemCronologicaAplicada: true,
       theme: document.documentElement.getAttribute('data-theme'),
     });
   }
@@ -109,7 +110,17 @@
     if (Array.isArray(p.topics)) state.topics = new Set(p.topics);
     if (Array.isArray(p.offSources)) state.offSources = new Set(p.offSources);
     if (p.lang) state.lang = p.lang;
-    if (p.sort) state.sort = p.sort;
+
+    // A ordem cronológica passou a ser o padrão. Quem já usava o site tem
+    // "relevância" gravado no navegador e continuaria vendo a ordem antiga
+    // para sempre. Esta migração vira a chave uma única vez, sem tocar em
+    // temas, fontes, favoritos ou descartes.
+    if (p.ordemCronologicaAplicada) {
+      if (p.sort) state.sort = p.sort;
+    } else {
+      state.sort = 'time';
+    }
+
     if (p.periodo && PERIODOS[p.periodo]) state.periodo = p.periodo;
     if (typeof p.hidePaywall === 'boolean') state.hidePaywall = p.hidePaywall;
     if (typeof p.compact === 'boolean') state.compact = p.compact;
@@ -134,8 +145,8 @@
     if (min < 60) return RTF.format(-min, 'minute');
     var h = Math.round(min / 60);
     if (h < 24) return RTF.format(-h, 'hour');
-    var d = Math.round(h / 24);
-    if (d < 31) return RTF.format(-d, 'day');
+    var dd = Math.round(h / 24);
+    if (dd < 31) return RTF.format(-dd, 'day');
     return new Date(ts).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
   }
 
@@ -151,6 +162,21 @@
     if (k === hoje) return 'Hoje';
     if (k === ontem) return 'Ontem';
     return new Date(ts).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  /**
+   * Chave de ordenação cronológica.
+   *
+   * Alguns feeds — os do UOL, hoje — não informam a hora de publicação. Nesses
+   * casos o coletor usa a hora da coleta, o que faria a matéria parecer
+   * recém-saída e ocupar o topo todo dia. Aqui ela é jogada para o fim do
+   * próprio dia: continua no dia certo, sem fingir um frescor que não tem.
+   */
+  function chaveCronologica(it) {
+    if (it.hasDate !== false) return it.ts;
+    var d = new Date(it.ts);
+    d.setHours(0, 1, 0, 0);
+    return d.getTime();
   }
 
   // ---------------------------------------------------------- carga
@@ -264,7 +290,7 @@
         summary: it.summary, summary_pt: it.summary_pt,
         sourceId: it.sourceId, sourceName: s.name || it.sourceId, section: s.section || '',
         site: s.site || '', paywall: !!s.paywall,
-        ts: it.ts, topics: it.topics || [], salvoEm: Date.now(),
+        ts: it.ts, hasDate: it.hasDate, topics: it.topics || [], salvoEm: Date.now(),
       };
       delete descartes[id];  // favoritar desfaz um descarte anterior
       gravar(K.desc, descartes);
@@ -391,9 +417,13 @@
       return true;
     });
 
-    if (state.sort === 'time') out.sort(function (a, b) { return b.ts - a.ts; });
-    else if (state.sort === 'coverage') out.sort(function (a, b) { return (b.clusterSize - a.clusterSize) || (b.score - a.score); });
-    else out.sort(function (a, b) { return (b.score - penalidade(b)) - (a.score - penalidade(a)); });
+    if (state.sort === 'coverage') {
+      out.sort(function (a, b) { return (b.clusterSize - a.clusterSize) || (chaveCronologica(b) - chaveCronologica(a)); });
+    } else if (state.sort === 'score') {
+      out.sort(function (a, b) { return (b.score - penalidade(b)) - (a.score - penalidade(a)); });
+    } else {
+      out.sort(function (a, b) { return chaveCronologica(b) - chaveCronologica(a); });
+    }
 
     return out;
   }
@@ -408,8 +438,34 @@
     $('#results').innerHTML = html;
   }
 
+  /**
+   * Por que a tradução sumiu.
+   *
+   * Sem a camada de IA o seletor de idioma não tem o que alternar e some —
+   * o que, sem explicação, parece defeito do site. O coletor já registra o
+   * motivo; aqui ele vira uma linha legível.
+   */
+  function motivoDaIaDesligada() {
+    var erro = String(data.briefingErro || data.aiNote || '');
+    var bruto = erro || 'a camada de IA não rodou nesta coleta';
+    if (data.aiNote || /nenhuma chave/i.test(erro)) {
+      return { curto: 'nenhuma chave de API configurada', detalhe: bruto };
+    }
+    if (/credit balance|crédito/i.test(erro)) {
+      return { curto: 'crédito da API esgotado', detalhe: bruto };
+    }
+    if (/401|authentication|invalid x-api-key/i.test(erro)) {
+      return { curto: 'chave de API inválida ou revogada', detalhe: bruto };
+    }
+    if (/429|rate/i.test(erro)) {
+      return { curto: 'limite de uso da API atingido', detalhe: bruto };
+    }
+    return { curto: 'a camada de IA falhou nesta coleta', detalhe: bruto };
+  }
+
   function montarCabecalho() {
     var d = new Date(data.generatedAt);
+    var horas = (Date.now() - d.getTime()) / 3600000;
     $('#edition-date').textContent =
       d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) +
       ' · edição das ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) +
@@ -420,7 +476,20 @@
       '<b>' + (st.publishedItems || 0) + '</b> nesta edição',
       '<b>' + (st.sourcesOk || 0) + '</b> de <b>' + (st.sourcesTotal || 0) + '</b> fontes responderam',
     ];
-    if (data.aiEnabled) partes.push('curadoria por IA ativa');
+
+    // edição velha é informação, não detalhe: o leitor precisa saber
+    if (horas >= 20) {
+      partes.push('<span style="color:var(--warn)">última coleta há ' +
+        Math.round(horas) + ' horas</span>');
+    }
+
+    if (data.aiEnabled) {
+      partes.push('curadoria por IA ativa');
+    } else if (!data.demo) {
+      var m = motivoDaIaDesligada();
+      partes.push('<span style="color:var(--alarm)" title="' + esc(m.detalhe) +
+        '">sem tradução — ' + esc(m.curto) + '</span>');
+    }
     $('#statline').innerHTML = partes.join(' <span class="dot">·</span> ');
 
     if (data.briefing) $('#btn-ai').hidden = false;
@@ -476,7 +545,7 @@
             '<input type="checkbox" data-src="' + esc(s.id) + '"' + (state.offSources.has(s.id) ? '' : ' checked') + '>' +
             '<span class="src-name">' + esc(s.name) +
             (s.section ? ' <span class="src-sec">' + esc(s.section) + '</span>' : '') +
-            (s.paywall ? ' <span class="src-lock" title="assinatura">🔒</span>' : '') +
+            (s.paywall ? ' <span class="src-lock" title="assinatura">&#128274;</span>' : '') +
             '</span><span class="src-n">' + contarPorFonte(s.id) + '</span></label>';
         }).join('') +
         '</div></details>';
@@ -508,7 +577,8 @@
         '</div>';
     }
 
-    var modelo = (data.ai && data.ai.models && data.ai.models.briefing) || 'modelo de IA';
+    var modelo = (data.ai && data.ai.models &&
+      (data.ai.models.briefingUsado || data.ai.models.briefing)) || 'modelo de IA';
 
     el.innerHTML =
       '<p class="briefing-kicker">Curadoria por IA</p>' +
@@ -582,7 +652,7 @@
       var t = topicById.get(p[1]);
       if (!s || !t) return;
       linhas.push('<div class="apr-row"><span>' + esc(s.name) + ' em <b>' + esc(t.short || t.label) + '</b></span>' +
-        '<span class="apr-n">−' + apr.porFonteTema[k] + '</span></div>');
+        '<span class="apr-n">&minus;' + apr.porFonteTema[k] + '</span></div>');
     });
 
     var esqHtml = '';
@@ -606,7 +676,7 @@
   function acoesHtml(it, favorito, descartado) {
     if (state.vista === 'favoritos') {
       return '<div class="acoes">' +
-        '<button class="acao is-fav" data-fav="' + esc(it.id) + '" title="Remover dos favoritos">★ favorita</button>' +
+        '<button class="acao is-fav" data-fav="' + esc(it.id) + '" title="Remover dos favoritos">&#9733; favorita</button>' +
         '</div>';
     }
     if (descartado) {
@@ -619,8 +689,8 @@
     return '<div class="acoes">' +
       '<button class="acao' + (favorito ? ' is-fav' : '') + '" data-fav="' + esc(it.id) + '" ' +
         'title="' + (favorito ? 'Remover dos favoritos' : 'Guardar nos favoritos') + '">' +
-        (favorito ? '★ favorita' : '☆ favoritar') + '</button>' +
-      '<button class="acao" data-descartar="' + esc(it.id) + '" title="Tirar da lista">✕ descartar</button>' +
+        (favorito ? '&#9733; favorita' : '&#9734; favoritar') + '</button>' +
+      '<button class="acao" data-descartar="' + esc(it.id) + '" title="Tirar da lista">&#10005; descartar</button>' +
       '<button class="acao acao-fonte" data-esquecer="' + esc(it.sourceId) + '" ' +
         'title="Não mostrar mais nada de ' + esc(s.name || it.sourceId) + '">esquecer fonte</button>' +
       '</div>';
@@ -636,8 +706,14 @@
 
     var cab = '<a class="art-source" href="' + esc(s.site || '#') + '" target="_blank" rel="noopener">' + esc(s.name) + '</a>';
     if (s.section) cab += '<span class="art-sec">' + esc(s.section) + '</span>';
-    cab += '<span class="art-sep">·</span><span class="art-time" title="' +
-      esc(new Date(it.ts).toLocaleString('pt-BR')) + '">' + esc(relTime(it.ts)) + '</span>';
+    cab += '<span class="art-sep">&middot;</span>';
+    if (it.hasDate === false) {
+      cab += '<span class="art-time" title="O feed desta fonte não informa a hora de publicação. ' +
+        'A data mostrada é a da coleta.">data não informada</span>';
+    } else {
+      cab += '<span class="art-time" title="' + esc(new Date(it.ts).toLocaleString('pt-BR')) + '">' +
+        esc(relTime(it.ts)) + '</span>';
+    }
     if (s.paywall) cab += '<span class="badge badge-pay">assinatura</span>';
     if (it.clusterSize > 2) cab += '<span class="badge badge-cov">' + it.clusterSize + ' veículos</span>';
     if (usaPt && it.title_pt) cab += '<span class="badge" title="Tradução automática do original">traduzido</span>';
@@ -696,8 +772,11 @@
     if (state.sort === 'time' && state.vista !== 'favoritos') {
       var ultimoDia = null;
       fatia.forEach(function (it) {
-        var k = dayKey(it.ts);
-        if (k !== ultimoDia) { html += '<div class="daymark">' + esc(dayLabel(it.ts)) + '</div>'; ultimoDia = k; }
+        var k = dayKey(chaveCronologica(it));
+        if (k !== ultimoDia) {
+          html += '<div class="daymark">' + esc(dayLabel(chaveCronologica(it))) + '</div>';
+          ultimoDia = k;
+        }
         html += materiaHtml(it);
       });
     } else {
@@ -719,24 +798,24 @@
     if (state.vista !== 'tudo') {
       bits.push('<span class="tag-active tag-vista">' +
         (state.vista === 'favoritos' ? 'Favoritas' : 'Descartadas') +
-        '<button data-vista="tudo" aria-label="Voltar para tudo">×</button></span>');
+        '<button data-vista="tudo" aria-label="Voltar para tudo">&times;</button></span>');
     }
     state.topics.forEach(function (id) {
       var t = topicById.get(id);
       if (t) bits.push('<span class="tag-active">' + esc(t.label) +
-        '<button data-untopic="' + esc(id) + '" aria-label="Remover tema">×</button></span>');
+        '<button data-untopic="' + esc(id) + '" aria-label="Remover tema">&times;</button></span>');
     });
     if (state.q.trim()) {
       bits.push('<span class="tag-active">busca: “' + esc(state.q.trim()) +
-        '”<button data-unq="1" aria-label="Limpar busca">×</button></span>');
+        '”<button data-unq="1" aria-label="Limpar busca">&times;</button></span>');
     }
     if (state.offSources.size) {
       bits.push('<span class="tag-active">' + state.offSources.size + ' fonte(s) oculta(s)' +
-        '<button data-unsrc="1" aria-label="Reativar fontes">×</button></span>');
+        '<button data-unsrc="1" aria-label="Reativar fontes">&times;</button></span>');
     }
     if (esquecidas.size) {
       bits.push('<span class="tag-active">' + esquecidas.size + ' esquecida(s)' +
-        '<button data-unesq="1" aria-label="Lembrar todas as fontes">×</button></span>');
+        '<button data-unesq="1" aria-label="Lembrar todas as fontes">&times;</button></span>');
     }
 
     var bar = $('#chipbar');
@@ -1036,7 +1115,7 @@
 
     function restaurarPadrao() {
       state.topics.clear(); state.offSources.clear();
-      state.q = ''; state.sort = 'score'; state.periodo = '7d'; state.vista = 'tudo';
+      state.q = ''; state.sort = 'time'; state.periodo = '7d'; state.vista = 'tudo';
       state.hidePaywall = false; state.compact = false; state.mostrarDescartados = false;
       montarChipsDeTema(); montarListaDeFontes(); atualizar();
       garantirPeriodo();
