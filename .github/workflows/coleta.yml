@@ -122,6 +122,10 @@ jobs:
       - name: Aplicar as traduções já guardadas
         if: needs.decidir.outputs.traduzir != 'sim'
         run: node collector/enrich.mjs
+        env:
+          # Diz ao enrich que a ausência de chave aqui é de propósito, para a
+          # linha do site não acusar "nenhuma chave configurada" sem motivo.
+          MODO_APLICAR: '1'
 
       - name: Traduzir o que falta e escrever a análise do dia
         if: needs.decidir.outputs.traduzir == 'sim'
