@@ -1,5 +1,20 @@
 name: Coleta diária
 
+# Duas etapas com naturezas opostas, agora separadas.
+#
+#   COLETA     é gratuita (repositório público = minutos ilimitados) e é a
+#              única chance de capturar aquele dia: feeds RSS são uma janela
+#              móvel, o que sai deles não volta. Por isso roda todo dia.
+#
+#   TRADUÇÃO   é o que custa, e é adiável: a memória em data/traducoes.json
+#              guarda cada tradução pelo id da matéria, então uma execução
+#              posterior preenche o que faltou nos últimos dias sem deixar
+#              buraco. Roda duas vezes por semana e sempre que você mandar.
+#
+# Em toda execução o enrich.mjs roda de algum jeito: sem a chave ele só aplica
+# o que já está guardado, o que mantém em português as matérias que atravessam
+# de um dia para o outro.
+
 on:
   schedule:
     # O agendador do GitHub enfileira tarefas agendadas e atrasa horas em
@@ -13,15 +28,19 @@ on:
     #
     # Horários em UTC. Brasília é UTC−3 e o Brasil não usa horário de verão;
     # se voltar a usar, tire uma hora de cada linha.
-    - cron: '11 8 * * *'    # 05:11 em Brasília
-    - cron: '41 9 * * *'    # 06:41 em Brasília
-    - cron: '11 11 * * *'   # 08:11 em Brasília
+    - cron: '11 8 * * *'      # 05:11 em Brasília — coleta
+    - cron: '41 9 * * *'      # 06:41 em Brasília — coleta
+    - cron: '11 11 * * *'     # 08:11 em Brasília — coleta
+    - cron: '26 10 * * 1,4'   # 07:26 em Brasília, segundas e quintas — coleta + tradução
   workflow_dispatch:
     inputs:
-      pular_ia:
-        description: 'Rodar sem a camada de IA (sem tradução nem curadoria)'
-        type: boolean
-        default: false
+      tarefa:
+        description: 'O que fazer agora'
+        type: choice
+        default: tudo
+        options:
+          - tudo          # coletar e traduzir o que estiver faltando
+          - so-coleta     # só capturar o dia, sem gastar API
 
 permissions:
   contents: write
@@ -32,35 +51,52 @@ concurrency:
   group: coleta
   cancel-in-progress: false
 
+env:
+  # Mantenha igual ao cron de tradução acima. O job 'decidir' compara as duas
+  # strings para saber se este disparo é um dia de traduzir.
+  CRON_TRADUCAO: '26 10 * * 1,4'
+
 jobs:
-  # Decide se há trabalho a fazer. Sai em segundos quando não há.
+  # Decide o que há para fazer. Sai em segundos quando não há nada.
   decidir:
     runs-on: ubuntu-latest
     outputs:
-      rodar: ${{ steps.checar.outputs.rodar }}
+      coletar: ${{ steps.checar.outputs.coletar }}
+      traduzir: ${{ steps.checar.outputs.traduzir }}
     steps:
       - uses: actions/checkout@v4
 
       - id: checar
-        name: A edição de hoje já existe?
+        name: O que fazer nesta execução?
         run: |
           HOJE=$(TZ=America/Sao_Paulo date +%F)
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            echo "rodar=sim" >> "$GITHUB_OUTPUT"
-            echo "Execução manual: coletando de qualquer forma." >> "$GITHUB_STEP_SUMMARY"
-          elif [ -f "site/data/dias/$HOJE.json" ]; then
-            echo "rodar=nao" >> "$GITHUB_OUTPUT"
-            echo "### Nada a fazer" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "A edição de **$HOJE** já foi publicada por um disparo anterior desta manhã." >> "$GITHUB_STEP_SUMMARY"
+          EVENTO='${{ github.event_name }}'
+          AGENDA='${{ github.event.schedule }}'
+          TAREFA='${{ github.event.inputs.tarefa }}'
+
+          if [ "$EVENTO" != "schedule" ]; then
+            COLETAR=sim
+            if [ "$TAREFA" = "so-coleta" ]; then TRADUZIR=nao; else TRADUZIR=sim; fi
+            echo "Execução manual (${TAREFA:-tudo})." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "rodar=sim" >> "$GITHUB_OUTPUT"
-            echo "Ainda não há edição de $HOJE. Coletando." >> "$GITHUB_STEP_SUMMARY"
+            if [ "$AGENDA" = "$CRON_TRADUCAO" ]; then TRADUZIR=sim; else TRADUZIR=nao; fi
+            if [ -f "site/data/dias/$HOJE.json" ]; then
+              COLETAR=nao
+              echo "A edição de **$HOJE** já foi publicada por um disparo anterior." >> "$GITHUB_STEP_SUMMARY"
+            else
+              COLETAR=sim
+              echo "Ainda não há edição de $HOJE." >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
-  coletar:
+          echo "coletar=$COLETAR"   >> "$GITHUB_OUTPUT"
+          echo "traduzir=$TRADUZIR" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Coletar: **$COLETAR** · Traduzir: **$TRADUZIR**" >> "$GITHUB_STEP_SUMMARY"
+
+  executar:
     needs: decidir
-    if: needs.decidir.outputs.rodar == 'sim'
+    if: needs.decidir.outputs.coletar == 'sim' || needs.decidir.outputs.traduzir == 'sim'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,22 +110,35 @@ jobs:
         run: npm ci
 
       - name: Coletar feeds
+        if: needs.decidir.outputs.coletar == 'sim'
         run: node collector/collect.mjs
         env:
           WINDOW_HOURS: '48'
           PER_SOURCE_CAP: '25'
           GLOBAL_CAP: '700'
 
-      - name: Traduzir e escrever a curadoria
-        if: ${{ github.event.inputs.pular_ia != 'true' }}
+      # Sem a chave, o enrich só aplica a memória de traduções. É de graça e é
+      # o que impede uma matéria traduzida ontem de voltar ao inglês hoje.
+      - name: Aplicar as traduções já guardadas
+        if: needs.decidir.outputs.traduzir != 'sim'
+        run: node collector/enrich.mjs
+
+      - name: Traduzir o que falta e escrever a análise do dia
+        if: needs.decidir.outputs.traduzir == 'sim'
         run: node collector/enrich.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Traduzir as 150 melhores em vez de 400 corta o custo diário da API
-          # para cerca de um terço. As 150 primeiras já cobrem, com folga, tudo
-          # o que aparece nas primeiras telas de qualquer combinação de temas;
-          # o que ficar sem tradução continua aparecendo no idioma original.
-          MAX_TRANSLATE: '150'
+          # Varre uma semana para trás e preenche o que estiver sem tradução.
+          DIAS_TRADUZIR: '7'
+          # ESTE é o número que controla o custo: quantas matérias de cada dia
+          # são traduzidas. A tradução começa pelas mais recentes, na mesma
+          # ordem em que o site mostra, então 150 cobre bem mais do que se
+          # costuma rolar num dia. Baixar para 80 corta o custo quase pela
+          # metade; subir para 300 dobra.
+          MAX_TRANSLATE_DIA: '150'
+          # Válvula de segurança da execução inteira: 7 dias × 150 = 1050.
+          # Precisa comportar a recuperação de uma semana de uma vez só.
+          MAX_TRANSLATE_TOTAL: '1050'
 
       - name: Podar o acervo além de 30 dias
         run: node collector/prune.mjs
@@ -102,7 +151,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site/data
           if git diff --staged --quiet; then
-            echo "Nada mudou nesta coleta."
+            echo "Nada mudou nesta execução."
           else
             git commit -m "Edição de $(TZ=America/Sao_Paulo date '+%d/%m/%Y %H:%M')"
             git push
@@ -127,13 +176,18 @@ jobs:
             const l = [];
             l.push('- Matérias publicadas: **' + d.stats.publishedItems + '** (de ' + d.stats.rawItems + ' brutas)');
             l.push('- Fontes que responderam: **' + d.stats.sourcesOk + '/' + d.stats.sourcesTotal + '**');
-            l.push('- Curadoria por IA: **' + (d.aiEnabled ? 'ativa' : 'desligada') + '**');
             if (d.ai) {
-              l.push('- Traduzidas: **' + (d.ai.translatedCount || 0) + '**' +
-                ' · modelo \`' + (d.ai.models && d.ai.models.translate) + '\`');
-              l.push('- Análise do dia: ' + (d.briefing
-                ? '**pronta** com \`' + (d.ai.models.briefingUsado || d.ai.models.briefing) + '\`'
-                : '**falhou** — ' + (d.briefingErro || 'motivo não registrado')));
+              l.push('- Em português: **' + (d.ai.translatedCount || 0) + '**' +
+                (d.ai.pendentes ? ' · ainda no original: **' + d.ai.pendentes + '**' : ' · nada pendente'));
+              l.push('- Traduzidas nesta execução: **' + (d.ai.traduzidasAgora || 0) + '**' +
+                (d.ai.models ? ' com \`' + d.ai.models.translate + '\`' : ' (sem chamadas de API)'));
+              l.push('- Memória de traduções: **' + (d.ai.memoria || 0) + '** matéria(s)' +
+                (d.ai.diasRegravados ? ' · ' + d.ai.diasRegravados + ' dia(s) do acervo atualizados' : ''));
+              if (d.ai.models) {
+                l.push('- Análise do dia: ' + (d.briefing
+                  ? '**pronta** com \`' + (d.ai.models.briefingUsado || d.ai.models.briefing) + '\`'
+                  : '**falhou** — ' + (d.briefingErro || 'motivo não registrado')));
+              }
             }
             if (d.aiNote) l.push('- ' + d.aiNote);
             if (d.acervo) l.push('- Acervo: **' + d.acervo.dias.length + '** dia(s) guardado(s)');
