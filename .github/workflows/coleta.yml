@@ -2,11 +2,21 @@ name: Coleta diária
 
 on:
   schedule:
-    # 09:00 UTC = 06:00 em Brasília (UTC-3).
-    # Nota: o GitHub agenda por UTC e não segue horário de verão.
-    # Se o Brasil voltar a adotar horário de verão, ajuste para "0 8 * * *".
-    - cron: '0 9 * * *'
-  workflow_dispatch:        # permite rodar na mão pela aba Actions
+    # O agendador do GitHub enfileira tarefas agendadas e atrasa horas em
+    # momentos de pico — foi o que fez a edição das 6h chegar às 14h. Duas
+    # defesas contra isso:
+    #
+    #   1. os minutos são quebrados, porque a fila no minuto 0 é a pior;
+    #   2. há três disparos na janela da manhã, e o trabalho de verdade
+    #      acontece no primeiro que conseguir rodar. Os outros conferem que
+    #      a edição do dia já existe e saem em segundos, sem gastar API.
+    #
+    # Horários em UTC. Brasília é UTC−3 e o Brasil não usa horário de verão;
+    # se voltar a usar, tire uma hora de cada linha.
+    - cron: '11 8 * * *'    # 05:11 em Brasília
+    - cron: '41 9 * * *'    # 06:41 em Brasília
+    - cron: '11 11 * * *'   # 08:11 em Brasília
+  workflow_dispatch:
     inputs:
       pular_ia:
         description: 'Rodar sem a camada de IA (sem tradução nem curadoria)'
@@ -14,7 +24,7 @@ on:
         default: false
 
 permissions:
-  contents: write           # para gravar a edição do dia no repositório
+  contents: write
   pages: write
   id-token: write
 
@@ -23,7 +33,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decide se há trabalho a fazer. Sai em segundos quando não há.
+  decidir:
+    runs-on: ubuntu-latest
+    outputs:
+      rodar: ${{ steps.checar.outputs.rodar }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: checar
+        name: A edição de hoje já existe?
+        run: |
+          HOJE=$(TZ=America/Sao_Paulo date +%F)
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "rodar=sim" >> "$GITHUB_OUTPUT"
+            echo "Execução manual: coletando de qualquer forma." >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f "site/data/dias/$HOJE.json" ]; then
+            echo "rodar=nao" >> "$GITHUB_OUTPUT"
+            echo "### Nada a fazer" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "A edição de **$HOJE** já foi publicada por um disparo anterior desta manhã." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "rodar=sim" >> "$GITHUB_OUTPUT"
+            echo "Ainda não há edição de $HOJE. Coletando." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   coletar:
+    needs: decidir
+    if: needs.decidir.outputs.rodar == 'sim'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +85,11 @@ jobs:
         run: node collector/enrich.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MAX_TRANSLATE: '400'
+          # Traduzir as 150 melhores em vez de 400 corta o custo diário da API
+          # para cerca de um terço. As 150 primeiras já cobrem, com folga, tudo
+          # o que aparece nas primeiras telas de qualquer combinação de temas;
+          # o que ficar sem tradução continua aparecendo no idioma original.
+          MAX_TRANSLATE: '150'
 
       - name: Podar o acervo além de 30 dias
         run: node collector/prune.mjs
@@ -89,11 +130,12 @@ jobs:
             l.push('- Curadoria por IA: **' + (d.aiEnabled ? 'ativa' : 'desligada') + '**');
             if (d.ai) {
               l.push('- Traduzidas: **' + (d.ai.translatedCount || 0) + '**' +
-                ' · modelo ' + '\`' + (d.ai.models && d.ai.models.translate) + '\`');
+                ' · modelo \`' + (d.ai.models && d.ai.models.translate) + '\`');
               l.push('- Análise do dia: ' + (d.briefing
                 ? '**pronta** com \`' + (d.ai.models.briefingUsado || d.ai.models.briefing) + '\`'
                 : '**falhou** — ' + (d.briefingErro || 'motivo não registrado')));
             }
+            if (d.aiNote) l.push('- ' + d.aiNote);
             if (d.acervo) l.push('- Acervo: **' + d.acervo.dias.length + '** dia(s) guardado(s)');
             const down = d.sources.filter(s => !s.ok);
             if (down.length) {
@@ -104,8 +146,6 @@ jobs:
               l.push('');
               l.push('</details>');
             }
-            // Fonte que responde mas não rende matéria é o caso mais traiçoeiro:
-            // parece saudável no painel e some da página sem explicação.
             const empty = d.sources.filter(s => s.ok && s.collected === 0);
             if (empty.length) {
               l.push('');
