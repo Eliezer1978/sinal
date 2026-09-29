@@ -374,9 +374,17 @@ async function main() {
   let models = null;
 
   if (!API_KEY) {
-    console.log('ANTHROPIC_API_KEY ausente — sem chamadas de API nesta execução.');
-    console.log('A memória de traduções foi aplicada; o que ainda não foi traduzido fica no idioma original.');
-    data.aiNote = 'Sem chamadas de IA nesta execução: nenhuma chave de API configurada.';
+    // Duas situações diferentes chegam aqui e não podem virar a mesma frase:
+    // um dia de só coleta (normal, previsto) e uma chave ausente (defeito).
+    // O workflow avisa qual é pelo MODO_APLICAR.
+    const soAplicar = process.env.MODO_APLICAR === '1';
+    console.log(soAplicar
+      ? 'Execução só de coleta — a memória de traduções foi aplicada, sem chamadas de API.'
+      : 'ANTHROPIC_API_KEY ausente — sem chamadas de API nesta execução.');
+    console.log('O que ainda não foi traduzido fica no idioma original.');
+    data.aiNote = soAplicar
+      ? 'Execução só de coleta: a tradução roda em cadência própria e preenche esta edição depois.'
+      : 'Sem chamadas de IA nesta execução: nenhuma chave de API configurada.';
   } else {
     models = await pickModels();
     console.log(`→ modelos: tradução=${models.translate} análise=${models.briefing}`);
