@@ -247,8 +247,16 @@
     carregando = true;
     atualizarRodapeAcervo();
 
+    // Dias fechados nunca mudam, então podem vir do cache do navegador sem
+    // consultar a rede. O arquivo de hoje ainda pode ser reescrito por uma nova
+    // coleta, então esse é sempre revalidado.
+    var hoje = new Date();
+    var hojeISO = hoje.getFullYear() + '-' +
+      String(hoje.getMonth() + 1).padStart(2, '0') + '-' +
+      String(hoje.getDate()).padStart(2, '0');
+
     return Promise.all(faltando.map(function (dia) {
-      return fetch('data/dias/' + dia + '.json', { cache: 'force-cache' })
+      return fetch('data/dias/' + dia + '.json', { cache: dia >= hojeISO ? 'no-cache' : 'force-cache' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
           diasCarregados.add(dia);
